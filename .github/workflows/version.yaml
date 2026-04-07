@@ -1,0 +1,38 @@
+name: version.yaml
+on:
+  workflow_call:
+    outputs:
+      bumped_version:
+        description: "The version that would be bumped next"
+        value: ${{ jobs.version.outputs.version }}
+      current_version:
+        description: "the current active version"
+        value: ${{ jobs.version.outputs.previous }}
+      is_release:
+        description: "whether a release is required / can be made"
+        value: ${{ jobs.version.outputs.version != jobs.version.outputs.previous }}
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      version: ${{ steps.checks.outputs.version }}
+      previous: ${{ steps.checks.outputs.previous }}
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: setup uv
+      uses: astral-sh/setup-uv@v8.0.0
+    - name: setup git-cliff
+      uses: taiki-e/install-action@git-cliff
+    - id: checks
+      run: |
+        echo "version=$(git cliff --unreleased --bump --context | jq -r '.[0] | .version')" >> $GITHUB_OUTPUT
+        echo "previous=$(git cliff --unreleased --bump --context | jq -r '.[0] | .previous.version')" >> $GITHUB_OUTPUT

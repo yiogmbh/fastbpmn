@@ -1,0 +1,9 @@
+venv
+tests
+secrets
+*.egg-info
+*_cache
+.git
+.pytest_cache
+.tox
+dist
