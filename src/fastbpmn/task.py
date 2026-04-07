@@ -2,7 +2,7 @@ from typing import Optional, Protocol, runtime_checkable
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
-from .minion_types import LockDuration, TaskRetries, TaskTimeout
+from .fastbpmn_types import LockDuration, TaskRetries, TaskTimeout
 from .models import (
     InputModel,
     OutputModel,

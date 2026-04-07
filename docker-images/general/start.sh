@@ -3,9 +3,9 @@ set -e
 
 # Try to find a minion application that can be started
 # And add appropriate values to some environment variables
-if [ -f app/app/minion.py ]; then
+if [ -f app/app/fastbpmn.py ]; then
     DEFAULT_MODULE_NAME=app.minion
-elif [ -f app/minion.py ]; then
+elif [ -f app/fastbpmn.py ]; then
     DEFAULT_MODULE_NAME=minion
 fi
 export MODULE_NAME=${MODULE_NAME:-$DEFAULT_MODULE_NAME}
