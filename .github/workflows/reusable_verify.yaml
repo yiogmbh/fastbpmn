@@ -74,9 +74,12 @@ jobs:
     permissions:
       contents: read # to fetch the repository content
       id-token: write # for signing attestation(s) with GitHub OIDC Token
+
+      packages: write
+      attestations: write
     with:
       output: image
-      push: false
+      push: true
       context: .
       file: ./docker-images/Dockerfile
       target: fastbpmn
@@ -84,12 +87,19 @@ jobs:
       #cache: true
       #cache-scope: myapp
       meta-images: |
-         ghcr.io/yiogmbh/fastbpmn
+        ghcr.io/${{ github.repository }}
+
       meta-tags: |
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
+        type=semver,pattern={{major}}
+        type=ref,event=branch
+        type=ref,event=pr
+
         type=sha
+        type=sha,enable=true,prefix=,suffix=,format=short
         # define default branch
         type=edge,branch=main
-        type=sha,enable=true,prefix=,suffix=,format=short
       set-meta-labels: true
     secrets:
       registry-auths: |
