@@ -1,0 +1,114 @@
+# This configuration file is explained in detail here:
+#  https://squidfunk.github.io/mkdocs-material/setup/changing-the-colors/
+site_name: yio-minion for work (Docs)
+site_author: yio gmbh
+site_description: >-
+  Automatisch generierte Dokumentation für einen yio-minion der seine Arbeit verrichtet.
+
+copyright: "v1.0.40, Copyright &copy; 2022 yio gmbh"
+
+# Better provide nav by configuration (otherwise mkdocs tries to infer the structure of your documentation which might
+# lead to unexpected behavior).
+# I'm not sure how it works with multi-language docs.
+nav:
+  - index.md
+  - 'Minions':
+      - minions/index.md
+      - minions/getting-started.md
+#      - 'External Tasks':
+#          - minions/external_tasks/index.md
+#          - minions/external_tasks/crm.md
+#      - 'Script Tasks':
+#          - minions/script_tasks/index.md
+#          - minions/script_tasks/limit-instances.md
+theme:
+  name: material
+  # Logo
+  logo: assets/logo/logo_yio_squared.png
+  favicon: assets/logo/logo_yio_favicon.png
+  # Color settings
+  palette:
+    primary: white
+    accent: blue
+  # Language
+  language: de
+  # The features defined now, can be seen as useful defaults
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.expand
+    # - navigation.tabs        # uncomment this line to use a horizontal nav bar as well
+    # - navigation.tabs.sticky # uncomment this line to make the horizontal nav bar sticky
+    - navigation.sections
+    - navigation.indexes
+    - content.tabs.link
+    - content.tooltips
+  icon:
+    admonition:
+
+# Plugins
+plugins:
+  - search
+  #- yio-minion-docs
+  #- git-revision-date-localized:
+  #    fallback_to_build_date: true
+
+extra:
+  social:
+    - icon: fontawesome/regular/bookmark
+      link: https://yio.at
+      name: yio on the Internet
+  generator: false
+  # The following example shows how to create multilanguage support
+  # but that means to create two directories within your doc folder
+  # There you write the german and english one for example
+  #
+  # Uncomment to use:
+  #alternate:
+  #  - name: English
+  #    link: /en/
+  #    lang: en
+  #  - name: Deutsch
+  #    link: /de/
+  #    lang: de
+extra_css:
+  - css/termynal.css
+  - css/bpmn-js.css
+  - css/custom.css
+
+extra_javascript:
+  - js/termynal.js
+  - js/custom.js
+  #- js/bpmn-viewer.production.min.js
+  - js/bpmn-navigated-viewer.production.min.js
+  - js/bpmn-initializer.js
+
+markdown_extensions:
+  - abbr
+  - attr_list
+  - pymdownx.snippets:
+      check_paths: false
+      # base_path:
+      auto_append:
+      - docs/abbreviations.md
+  - def_list
+  - admonition
+  - tables
+  - pymdownx.superfences:
+      custom_fences:
+        - name: bpmn
+          class: bpmn-viewer
+          format: !!python/name:yio_minions.docs.bpmn.render
+  - md_in_html
+#  - pymdownx.highlight:
+#      anchor_linenums: true
+#      auto_title: true
+#      linenums: true
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+#  - pymdownx.tabbed:
+#      alternate_style: true

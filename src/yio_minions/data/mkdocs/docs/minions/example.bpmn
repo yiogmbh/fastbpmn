@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0nys5yl" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.4.2" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.18.0">
+  <bpmn:process id="example" name="example" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1qcz7zb</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1qcz7zb" sourceRef="StartEvent_1" targetRef="Activity_0g6c5pk" />
+    <bpmn:endEvent id="Event_1bn0li6">
+      <bpmn:incoming>Flow_0m26dnx</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_0m26dnx" sourceRef="Activity_0g6c5pk" targetRef="Event_1bn0li6" />
+    <bpmn:serviceTask id="Activity_0g6c5pk" name="say-hello" camunda:type="external" camunda:topic="say-hello">
+      <bpmn:extensionElements />
+      <bpmn:incoming>Flow_1qcz7zb</bpmn:incoming>
+      <bpmn:outgoing>Flow_0m26dnx</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:textAnnotation id="TextAnnotation_01ljyk4">
+      <bpmn:text>Just say Hello</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_1q2x119" sourceRef="Activity_0g6c5pk" targetRef="TextAnnotation_01ljyk4" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="example">
+      <bpmndi:BPMNShape id="TextAnnotation_01ljyk4_di" bpmnElement="TextAnnotation_01ljyk4">
+        <dc:Bounds x="370" y="50" width="100" height="30" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="179" y="159" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1bn0li6_di" bpmnElement="Event_1bn0li6">
+        <dc:Bounds x="432" y="159" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1yh22zn_di" bpmnElement="Activity_0g6c5pk">
+        <dc:Bounds x="270" y="137" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Association_1q2x119_di" bpmnElement="Association_1q2x119">
+        <di:waypoint x="356" y="137" />
+        <di:waypoint x="407" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1qcz7zb_di" bpmnElement="Flow_1qcz7zb">
+        <di:waypoint x="215" y="177" />
+        <di:waypoint x="270" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0m26dnx_di" bpmnElement="Flow_0m26dnx">
+        <di:waypoint x="370" y="177" />
+        <di:waypoint x="432" y="177" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
