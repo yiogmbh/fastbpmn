@@ -68,3 +68,6 @@ jobs:
       - name: verify
         run: |
           uv run --with dist/*.whl --no-project -- python -c "import aetpiref"
+
+  docker-build:
+    uses: ./.github/workflows/reusable_dockerbuild.yaml
