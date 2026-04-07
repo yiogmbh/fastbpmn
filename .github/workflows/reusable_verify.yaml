@@ -1,0 +1,70 @@
+name: Lint & Test
+on:
+  workflow_call:
+    inputs:
+      lint:
+        description: "Whether to enable linting"
+        type: boolean
+        default: true
+
+      test:
+        description: "Whether to enable testing"
+        type: boolean
+        default: true
+
+      build:
+        description: "Whether to enable building"
+        type: boolean
+        default: true
+
+jobs:
+
+  python-tests:
+    if: ${{ inputs.test }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v8.0.0
+      - name: pytest
+        uses: yiogmbh/yio-actions/python/uv-tox@v2
+        with:
+          environment: ruff  # just for now execute linting twice ...
+
+  python-lint:
+    if: ${{ inputs.lint }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v8.0.0
+      - name: pytest
+        uses: yiogmbh/yio-actions/python/uv-tox@v2
+        with:
+          environment: ruff,ty
+
+  python-build:
+    if: ${{ inputs.build }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v8.0.0
+      - name: build
+        uses: yiogmbh/yio-actions/python/uv-build@v2
+      - name: verify
+        run: |
+          uv run --with dist/*.whl --no-project -- python -c "import aetpiref"

@@ -1,0 +1,22 @@
+name: cliff-version
+author: dh
+description: cliff-version
+outputs:
+  bumped:
+    description: "the version that would be bumped next"
+    value: ${{ steps.check.outputs.version }}
+  current:
+    description: "the version right now"
+    value: ${{ steps.check.outputs.previous }}
+  requires_release:
+    description: "is a release required?"
+    value: ${{ steps.check.outputs.version != steps.check.outputs.previous }}
+runs:
+  using: composite
+  steps:
+    - name: detect versions
+      id: check
+      shell: bash
+      run: |
+        echo "version=$(git cliff --unreleased --bump --context | jq -r '.[0] | .version')" >> $GITHUB_OUTPUT
+        echo "previous=$(git cliff --unreleased --bump --context | jq -r '.[0] | .previous.version')" >> $GITHUB_OUTPUT
