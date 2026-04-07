@@ -14,8 +14,7 @@ FileDownloader = Callable[[str], Awaitable[bytes]]
 
 class Context:
     """
-    A context is created for each task execution by the yio-minion to
-    provide additional useful features.
+    A context is created for each task execution to provide additional useful features.
 
     Features:
         - create temporary files/directories to be used within your external task routine. If you want so

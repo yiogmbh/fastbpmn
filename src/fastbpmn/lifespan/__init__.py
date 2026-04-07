@@ -36,7 +36,7 @@ STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
 class LifespanOn:
     def __init__(self, app: AETPIApplication) -> None:
         self.app = app
-        self.logger = logging.getLogger("minion.error")
+        self.logger = logging.getLogger(__name__)
         self.startup_event = asyncio.Event()
         self.shutdown_event = asyncio.Event()
         self.receive_queue: Queue[LifespanReceiveMessage] = asyncio.Queue()

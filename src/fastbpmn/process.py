@@ -64,7 +64,7 @@ class Process:
         retries: int = 4,
     ):
         """
-        Adding a task as specified to the minion
+        Adding a task as specified to the Process
         """
         if not title:
             title = get_method_name(handler)

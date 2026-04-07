@@ -1,7 +1,7 @@
 import squirrel
-from fastbpmn import YioMinion
+from fastbpmn import FastBPMN
 
-minion = YioMinion()
+app = FastBPMN()
 
 if __name__ == "__main__":
-    squirrel.run(minion)
+    squirrel.run(app)

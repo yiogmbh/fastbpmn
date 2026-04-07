@@ -1,11 +1,3 @@
-# -----------------------------------------------------------------------------
-# correlate minion
-#
-# Custom Data Types
-# Author: correlate/fd
-# Date: 2020-10-09
-# -----------------------------------------------------------------------------
-
 from dataclasses import InitVar, dataclass, field
 from typing import Any, Dict, Set
 

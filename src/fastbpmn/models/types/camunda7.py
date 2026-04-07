@@ -232,6 +232,6 @@ def read_variables(input: dict[str, Any], context: dict | None) -> CamundaVariab
     variables = Camunda7VariablesAdapter.validate_python(preprocessed, context=context)
     variables_dict = {v.name: v for v in variables}
 
-    minion_variables = CamundaVariableAdapter.validate_python(variables_dict)
+    fastbpmn_variables = CamundaVariableAdapter.validate_python(variables_dict)
 
-    return minion_variables
+    return fastbpmn_variables

@@ -154,7 +154,7 @@ async def any_other_error_handler(
 An uncaught error occurred in the application occurred
 
 *) this is most likely caused by errors in the application and not caused within the external tasks itself
-*) you migth not be able to resolve this error yourself, please contact your minion operator
+*) you might not be able to resolve this error yourself, please contact your fastbpmn operator
 
 Message: {error_message}
 

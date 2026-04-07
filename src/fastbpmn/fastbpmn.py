@@ -38,7 +38,7 @@ from .utils.names import get_random_name
 logger = structlog.get_logger(__name__)
 
 
-class YioMinion:
+class FastBPMN:
     """
     The base class to handle external tasks later on
     """
