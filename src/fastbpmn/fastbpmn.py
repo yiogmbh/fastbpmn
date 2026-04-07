@@ -3,7 +3,6 @@ import traceback
 import warnings
 from contextlib import asynccontextmanager
 from itertools import chain
-from pathlib import Path
 from typing import Any, Callable, List, Optional, Pattern, Sequence
 
 import structlog
@@ -20,7 +19,6 @@ from rich import print  # pylint: disable=redefined-builtin
 
 from fastbpmn.processor import ExternalTaskProcessor
 
-from .docs.plugin import YioMinionDocs
 from .lifespan import DeprecatedLifespan, NoopLifespan, _wrap_gen_lifespan_context
 from .middleware import Middleware, P, _MiddlewareFactory
 from .middleware.context import ContextMiddleware
@@ -181,24 +179,6 @@ class YioMinion:
         if self.middleware_stack is None:
             self.middleware_stack = self.build_middleware_stack()
         await self.middleware_stack(scope, receive, send)
-
-    def documentation(self, site_dir: Path):
-        """
-        This method should collect all information to external tasks to create a markdown documentation
-        :return:
-        """
-        # pylint: disable=import-outside-toplevel
-        from mkdocs.commands import build
-        from mkdocs.config import load_config
-
-        cfg = load_config(config_file=None, site_dir=str(site_dir))
-        cfg.plugins["yio-minion-docs"] = YioMinionDocs(self)
-
-        cfg["plugins"].run_event("startup", command="build", dirty=False)
-        try:
-            build.build(cfg, dirty=False)
-        finally:
-            cfg["plugins"].run_event("shutdown")
 
     def on_event(self, event_type: str) -> Callable:  # pragma: nocover
         def decorator(func: Callable) -> Callable:
