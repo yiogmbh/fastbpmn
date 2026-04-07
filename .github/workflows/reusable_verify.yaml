@@ -68,3 +68,31 @@ jobs:
       - name: verify
         run: |
           uv run --with dist/*.whl --no-project -- python -c "import aetpiref"
+
+  docker-build:
+    uses: docker/github-builder/.github/workflows/build.yml@v1
+    permissions:
+      contents: read # to fetch the repository content
+      id-token: write # for signing attestation(s) with GitHub OIDC Token
+    with:
+      output: image
+      push: false
+      context: .
+      file: ./docker-images/Dockerfile
+      target: fastbpmn
+      platforms: linux/amd64,linux/arm64
+      #cache: true
+      #cache-scope: myapp
+      meta-images: |
+         ghcr.io/yiogmbh/fastbpmn
+      meta-tags: |
+        type=sha
+        # define default branch
+        type=edge,branch=main
+        type=sha,enable=true,prefix=,suffix=,format=short
+      set-meta-labels: true
+    secrets:
+      registry-auths: |
+        - registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
