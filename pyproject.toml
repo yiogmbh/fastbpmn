@@ -3,7 +3,7 @@ name = "fastbpmn"
 description = "A framework allowing to write external tasks for various bpmn process engines."
 readme = "README.md"
 
-version = "2.0.6"
+version = "0.1.0"
 authors = [
     { name = "Daniel Hofstetter", email = "hello@yio.at" },
     { name = "Fritz Diener", email = "hello@yio.at"}
