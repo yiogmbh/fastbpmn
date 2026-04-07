@@ -3,7 +3,7 @@ from aetpiref.typing import TaskScope
 from assertpy import assert_that
 from polyfactory.factories import TypedDictFactory
 
-from yio_minions.processor.routing import (
+from fastbpmn.processor.routing import (
     AggregatePredicate,
     Predicate,
     ProcessDefinitionKeyPredicate,

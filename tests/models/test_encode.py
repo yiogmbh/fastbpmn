@@ -8,8 +8,8 @@ from unittest.mock import MagicMock
 import pytest
 from pydantic import Field
 
-from yio_minions.context import Context
-from yio_minions.models import BaseOutputModel, TaskComplete, camunda_loads, encode
+from fastbpmn.context import Context
+from fastbpmn.models import BaseOutputModel, TaskComplete, camunda_loads, encode
 
 
 @pytest.fixture()

@@ -1,4 +1,4 @@
-from yio_minions.task import TaskProperties
+from fastbpmn.task import TaskProperties
 
 
 def test_task_properties_lock_duration():

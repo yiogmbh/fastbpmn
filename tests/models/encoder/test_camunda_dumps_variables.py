@@ -7,11 +7,11 @@ from unittest.mock import patch
 
 import pytest
 
-from yio_minions.errors import DatatypeNotSupported
-from yio_minions.models import camunda_dumps_variables
+from fastbpmn.errors import DatatypeNotSupported
+from fastbpmn.models import camunda_dumps_variables
 
 
-@patch("yio_minions.models.encoder.camunda_encode_file")
+@patch("fastbpmn.models.encoder.camunda_encode_file")
 def test_camunda_dumps_variables(mocked_encode_file):
     """
     Test a whole bunch of cases for camunda_dumps_variables at once by providing

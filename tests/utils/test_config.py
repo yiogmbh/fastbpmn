@@ -2,7 +2,7 @@ import pytest
 from pydantic import HttpUrl, TypeAdapter
 from pydantic_core import Url
 
-from yio_minions.utils.config import ProtectedUrl, check_password, check_username
+from fastbpmn.utils.config import ProtectedUrl, check_password, check_username
 
 
 @pytest.fixture

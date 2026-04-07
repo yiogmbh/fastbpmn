@@ -3,11 +3,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from yio_minions.context import Context
-from yio_minions.errors import DatatypeNotSupported
-from yio_minions.models import FileInfo
-from yio_minions.models.decoder import camunda_loads
-from yio_minions.task import Task
+from fastbpmn.context import Context
+from fastbpmn.errors import DatatypeNotSupported
+from fastbpmn.models import FileInfo
+from fastbpmn.models.decoder import camunda_loads
+from fastbpmn.task import Task
 
 
 @pytest.fixture()
@@ -124,7 +124,7 @@ def mocked_sync_callback():
         ),
     ],
 )
-@mock.patch("yio_minions.models.types.camunda7.to_sync_callback")
+@mock.patch("fastbpmn.models.types.camunda7.to_sync_callback")
 def test_camunda_loads(
     mocked_to_sync, mocked_context, camunda_variables, kwargs_variables
 ):

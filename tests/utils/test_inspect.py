@@ -2,10 +2,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from yio_minions.context import Context
-from yio_minions.models import BaseInputModel
-from yio_minions.task import Task, TaskProperties
-from yio_minions.utils.inspect import is_async_callable, map_params
+from fastbpmn.context import Context
+from fastbpmn.models import BaseInputModel
+from fastbpmn.task import Task, TaskProperties
+from fastbpmn.utils.inspect import is_async_callable, map_params
 
 
 class DummyInput(BaseInputModel):

@@ -5,8 +5,8 @@ import typer
 from pydantic import HttpUrl, TypeAdapter
 
 from squirrel.arguments import SquirrelApp, SquirrelName, SquirrelWorkers
-from yio_minions.aetpi.servers.camunda7 import Camunda7Server
-from yio_minions.aetpi.servers.camunda7.settings import Camunda7Settings
+from fastbpmn.aetpi.servers.camunda7 import Camunda7Server
+from fastbpmn.aetpi.servers.camunda7.settings import Camunda7Settings
 
 http_url_adapter = TypeAdapter(HttpUrl)
 

@@ -1,4 +1,4 @@
-from yio_minions.aetpi.servers.camunda7.settings import Camunda7Settings
+from fastbpmn.aetpi.servers.camunda7.settings import Camunda7Settings
 
 
 class Camunda7SquirrelSettings(Camunda7Settings):

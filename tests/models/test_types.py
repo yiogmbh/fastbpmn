@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import ValidationError
 
-from yio_minions.context import Context
-from yio_minions.models.base import FileInfo
-from yio_minions.models.types.camunda7 import (
+from fastbpmn.context import Context
+from fastbpmn.models.base import FileInfo
+from fastbpmn.models.types.camunda7 import (
     Camunda7Boolean,
     Camunda7Double,
     Camunda7Integer,
@@ -19,7 +19,7 @@ from yio_minions.models.types.camunda7 import (
     preprocess_var_dict,
     read_variables,
 )
-from yio_minions.task import Task
+from fastbpmn.task import Task
 
 
 @pytest.mark.parametrize(
@@ -193,7 +193,7 @@ def test_read_variables(input: dict, expected_result: dict):
     context = {"context": mocked_context, "task": mocked_task}
 
     with patch(
-        "yio_minions.models.types.camunda7.to_sync_callback"
+        "fastbpmn.models.types.camunda7.to_sync_callback"
     ) as mocked_sync_callback:
 
         def callback():

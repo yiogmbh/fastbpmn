@@ -1,11 +1,12 @@
 [project]
-name = "yio-minions"
-description = "A framework to develop external tasks for camunda process engine in python. Especially for yio ecosystem."
+name = "fastbpmn"
+description = "A framework allowing to write external tasks for various bpmn process engines."
 readme = "README.md"
 
 version = "2.0.6"
 authors = [
-    { name = "yio gmbh", email = "hello@yio.at" }
+    { name = "Daniel Hofstetter", email = "hello@yio.at" },
+    { name = "Fritz Diener", email = "hello@yio.at"}
 ]
 
 dependencies = [
@@ -41,10 +42,11 @@ keywords = [
 
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-
+license-files = [
+    "LICENSE"
+]
 
 
 [project.urls]
@@ -62,7 +64,7 @@ Changelog="https://github.com/yiogmbh/fastbpmn/blob/main/CHANGELOG.md"
 
 
 [project.scripts]
-readiness = "yio_minions.readiness:main"
+readiness = "fastbpmn.readiness:main"
 squirrel = "squirrel.app:app"
 
 [build-system]
@@ -70,7 +72,7 @@ requires = ["uv_build>=0.11.3,<0.12"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = ["yio_minions", "squirrel"]
+module-name = ["fastbpmn", "squirrel"]
 namespace = true
 
 [dependency-groups]

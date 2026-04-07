@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from yio_minions.models.encoder import (
+from fastbpmn.models.encoder import (
     camunda_encode_decimal,
     camunda_encode_long,
     camunda_encode_number,

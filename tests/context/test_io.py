@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from yio_minions.context.io import Delete, TempPath
+from fastbpmn.context.io import Delete, TempPath
 
 
 @pytest.mark.parametrize(

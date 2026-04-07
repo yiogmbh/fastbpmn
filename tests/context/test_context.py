@@ -5,10 +5,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from yio_minions.context.context import Context
-from yio_minions.context.io import Delete, TempPath
-from yio_minions.models import FileInfo
-from yio_minions.task import Task
+from fastbpmn.context.context import Context
+from fastbpmn.context.io import Delete, TempPath
+from fastbpmn.models import FileInfo
+from fastbpmn.task import Task
 
 
 class UnitTestError(Exception):
@@ -17,7 +17,7 @@ class UnitTestError(Exception):
     """
 
 
-@mock.patch("yio_minions.context.context.delete_all")
+@mock.patch("fastbpmn.context.context.delete_all")
 @pytest.mark.asyncio
 async def test_context_manager_no_op(patched_delete_all):
     async with Context(file_downloader=MagicMock()):
@@ -33,9 +33,9 @@ async def test_context_manager_no_op(patched_delete_all):
         pytest.param(True, pytest.raises(UnitTestError), id="error"),
     ],
 )
-@mock.patch("yio_minions.context.context.create_temp_file")
-@mock.patch("yio_minions.context.context.create_temp_dir")
-@mock.patch("yio_minions.context.context.delete_all")
+@mock.patch("fastbpmn.context.context.create_temp_file")
+@mock.patch("fastbpmn.context.context.create_temp_dir")
+@mock.patch("fastbpmn.context.context.delete_all")
 @pytest.mark.asyncio
 async def test_context_manager_with_dirs_and_files(
     patched_delete_all,
@@ -74,8 +74,8 @@ async def test_context_manager_with_dirs_and_files(
     )
 
 
-@mock.patch("yio_minions.context.context.Context.temp_file")
-@mock.patch("yio_minions.context.context.Context.temp_file_in_dir")
+@mock.patch("fastbpmn.context.context.Context.temp_file")
+@mock.patch("fastbpmn.context.context.Context.temp_file_in_dir")
 @pytest.mark.asyncio
 async def test_download_file_with_name(
     mocked_temp_file_in_dir: MagicMock, mocked_temp_file: MagicMock
@@ -106,8 +106,8 @@ async def test_download_file_with_name(
     mocked_temp_file.assert_not_called()
 
 
-@mock.patch("yio_minions.context.context.Context.temp_file")
-@mock.patch("yio_minions.context.context.Context.temp_file_in_dir")
+@mock.patch("fastbpmn.context.context.Context.temp_file")
+@mock.patch("fastbpmn.context.context.Context.temp_file_in_dir")
 @pytest.mark.asyncio
 async def test_download_file_without_name(
     mocked_temp_file_in_dir: MagicMock, mocked_temp_file: MagicMock

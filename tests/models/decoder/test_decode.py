@@ -9,8 +9,8 @@ from pydantic import (
     model_validator,
 )
 
-from yio_minions.models import BaseInputModel, FileInfo
-from yio_minions.models.base import get_file_info_indirect
+from fastbpmn.models import BaseInputModel, FileInfo
+from fastbpmn.models.base import get_file_info_indirect
 
 
 def test_file_info():

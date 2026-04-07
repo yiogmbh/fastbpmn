@@ -2,7 +2,7 @@ from typing import List
 
 import pytest
 
-from yio_minions.models.encoder import camunda_encode_iterable
+from fastbpmn.models.encoder import camunda_encode_iterable
 
 
 @pytest.mark.parametrize(

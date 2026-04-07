@@ -2,7 +2,7 @@ from enum import Enum, IntEnum
 
 import pytest
 
-from yio_minions.models.encoder import camunda_encode_enum
+from fastbpmn.models.encoder import camunda_encode_enum
 
 
 class Items(Enum):

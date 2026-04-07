@@ -1,4 +1,4 @@
-from yio_minions.utils.names import get_random_name
+from fastbpmn.utils.names import get_random_name
 
 
 def test_get_random_name():

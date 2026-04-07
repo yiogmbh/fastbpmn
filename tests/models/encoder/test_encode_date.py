@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from yio_minions.models.encoder import camunda_encode_date
+from fastbpmn.models.encoder import camunda_encode_date
 
 
 @pytest.mark.parametrize(

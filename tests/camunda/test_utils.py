@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, PropertyMock
 
 import pytest
 
-from yio_minions.camunda.models import ExternalTask
-from yio_minions.camunda.utils import (
+from fastbpmn.camunda.models import ExternalTask
+from fastbpmn.camunda.utils import (
     business_key_predicate,
     filter_predicate,
     topics_predicate,

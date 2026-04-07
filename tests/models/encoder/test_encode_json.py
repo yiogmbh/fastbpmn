@@ -5,7 +5,7 @@ from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 
-from yio_minions.models.encoder import (
+from fastbpmn.models.encoder import (
     camunda_encode_dict,
     camunda_encode_model_v1,
     camunda_encode_model_v2,

@@ -4,11 +4,11 @@ import magic
 import pytest
 from pydantic import FilePath
 
-from yio_minions.models.encoder import as_base64, camunda_encode_file, determine_mime
+from fastbpmn.models.encoder import as_base64, camunda_encode_file, determine_mime
 
 
-@patch("yio_minions.models.encoder.as_base64")
-@patch("yio_minions.models.encoder.determine_mime")
+@patch("fastbpmn.models.encoder.as_base64")
+@patch("fastbpmn.models.encoder.determine_mime")
 def test_camunda_encode_file(mocked_determine_mime, mocked_as_base64):
 
     # Prepare
@@ -60,8 +60,8 @@ mocked_file = MagicMock(FilePath)
         ),
     ],
 )
-@patch("yio_minions.models.encoder.mimetypes.guess_type")
-@patch("yio_minions.models.encoder.magic.from_file")
+@patch("fastbpmn.models.encoder.mimetypes.guess_type")
+@patch("fastbpmn.models.encoder.magic.from_file")
 def test_determine_mime(
     mocked_from_file,
     mocked_guess_type,
@@ -85,7 +85,7 @@ def test_determine_mime(
     assert mime_type == expected_result
 
 
-@patch("yio_minions.models.encoder.base64.b64encode")
+@patch("fastbpmn.models.encoder.base64.b64encode")
 def test_as_base64(mocked_b64encode):
 
     # Prepare

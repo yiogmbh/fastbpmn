@@ -1,5 +1,5 @@
 import squirrel
-from yio_minions import YioMinion
+from fastbpmn import YioMinion
 
 minion = YioMinion()
 
