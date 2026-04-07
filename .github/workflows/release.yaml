@@ -33,10 +33,12 @@ jobs:
           name: built-pypi-package
           path: dist
 
+  docker-publish:
+    name: Publish Docker 🐳 image to  📦 to ghcr
+    uses: ./.github/workflows/reusable_dockerbuild.yaml
   # publish (to pypi)
   publish:
-    name: Publish Python 🐍 distribution 📦 to TestPyPI
-    if: false
+    name: Publish Python 🐍 distribution 📦 to PyPI
     needs: build
     environment:
       name: pypi
