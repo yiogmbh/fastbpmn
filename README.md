@@ -13,22 +13,23 @@ brew install libmagic
 ## Usage Example
 
 ```python
-from yio_minions import YioMinion
-from yio_minions.camunda import ProcessEngine
-from yio_minions.models import BaseInputModel, BaseOutputModel
+from fastbpmn import FastBPMN
+from fastbpmn.camunda import ProcessEngine
+from fastbpmn.models import BaseInputModel, BaseOutputModel
 
-pe = ProcessEngine(process_key='order-process')
-minion = YioMinion(process_engine=pe, name="Bob")
+app = FastBPMN(name="Bob")
+
 
 class OracleInput(BaseInputModel):
-    string_variable: str        # Requires a process variable called string_variable
-    integer_variable: int       # Requires a process variable called integer_variable
+    string_variable: str  # Requires a process variable called string_variable
+    integer_variable: int  # Requires a process variable called integer_variable
+
 
 class OracleOutput(BaseOutputModel):
-    win_or_loose: bool          # Sets the process variable win_or_loose in the end
+    win_or_loose: bool  # Sets the process variable win_or_loose in the end
 
 
-@minion.external_task(
+@app.external_task(
     topic="ask-oracle-delphi",
     input_class=OracleInput,
     output_class=OracleOutput,
@@ -46,7 +47,7 @@ async def ask_oracle_delphi(input_data: OracleInput):
     return OracleOutput(win_or_loose=win_or_loose)
 
 
-@minion.external_task(
+@app.external_task(
     topic="ask-oracle-dodona",
     input_class=OracleInput,
     output_class=OracleOutput,
@@ -64,52 +65,43 @@ async def ask_oracle_dodona(input_data: OracleInput):
     return OracleOutput(win_or_loose=win_or_loose)
 
 
-# To start simply call the minion itself
-# There are two commands supported by the bootstrapped command line interface
-#   run      : Executes the minion and tries to work on external tasks
-#   info     : Simply tells you something about the minions capabilities
+# start the fastbpmn application using the included squirrel
 if __name__ == '__main__':
-    minion()
+    import squirrel
+    from structlog_config import configure_logger
+    log = configure_logger()
+
+    #structlog.stdlib.recreate_defaults(log_level=logging.INFO)
+
+    squirrel.run(
+        app,
+        flavour="camunda7",
+
+        name="bob",
+        workers=10,
+        camunda_url="<your pe url>",
+        camunda_username="<your username>",
+        camunda_password="<your password>",
+    )
 ```
 
-#### Startup/Shutdown Handler
+#### Lifespan Handler
 
 ```python
-from yio_minions import YioMinion
-from yio_minions.camunda import ProcessEngine
+from fastbpmn import FastBPMN
+from fastbpmn.camunda import ProcessEngine
+from contextlib import asynccontextmanager
 
+@asynccontextmanager
+async def lifespan(app):
+    print("Done on startup ...")
+    yield
+    print("done on shutdown ...")
 
-def init_startup_handler() -> None:
-    print("added on startup")
-
-def init_shutdown_handler() -> None:
-    print("added on shutdown")
-
-# 1. append on initialization
-pe = ProcessEngine(process_key='order-process')
-minion = YioMinion(
-    process_engine=pe,
+app = FastBPMN(
     name="Bob",
-    on_startup=[init_startup_handler],
-    on_shutdown=[init_shutdown_handler]
+    lifespan=lifespan
 )
-
-# 2. Use decorator approach to add your handlers
-@minion.on_event("startup")
-def decorator_startup_handler() -> None:
-    print("Hello I'm a startup handler.")
-
-
-@minion.on_event("shutdown")
-async def decorator_shutdown_handler() -> None:
-    print("Hello I'm a shutdown handler.")
-
-# 3. Use a method already defined and append to the minion
-async def already_existing_method():
-    print("This method exists already and should be added to minion")
-
-minion.add_event_handler("startup", already_existing_method)
-
 ```
 
 #### Retries
@@ -118,40 +110,36 @@ In order to handle errors with retries there is a special exception that should 
 raised within your external tasks. The latter example shows the usage:
 
 ```python
-from yio_minions import YioMinion
-from yio_minions.errors import RetryExternalTask
-from yio_minions.camunda import ProcessEngine
+from fastbpmn import FastBPMN
+from fastbpmn.errors import RetryExternalTask
+from fastbpmn.camunda import ProcessEngine
 
-pe = ProcessEngine(process_key='order-process')
-minion = YioMinion(
-    process_engine=pe,
+app = FastBPMN(
     name="Bob"
 )
 
 
-@minion.external_task(
+@app.external_task(
     topic="last-forever",
     input_class=None,
     output_class=None,
 )
 async def retry_infinite(input_data: None) -> None:
-
     print("I will last forever")
     raise RetryExternalTask(retries=1)  # No matter what happens we always tell the
-                                        # process engine to try once again ;-)
+    # process engine to try once again ;-)
 
 
-@minion.external_task(
+@app.external_task(
     topic="try-5times",
     input_class=None,
     output_class=None,
     retries=5
 )
 async def retry_infinite(input_data: None) -> None:
-
     print("You should see me 5 or 6 times ...")
-    raise RetryExternalTask()   # not specifying a number of retries within the
-                                # exception leads to decrease of initial number
+    raise RetryExternalTask()  # not specifying a number of retries within the
+    # exception leads to decrease of initial number
 ```
 
 #### No Input Values
@@ -159,17 +147,15 @@ async def retry_infinite(input_data: None) -> None:
 It's possible to omit all the arguments if your external-task won't depend on input data.
 
 ```python
-from yio_minions import YioMinion
-from yio_minions.camunda import ProcessEngine
+from fastbpmn import FastBPMN
+from fastbpmn.camunda import ProcessEngine
 
-pe = ProcessEngine(process_key='order-process')
-minion = YioMinion(
-    process_engine=pe,
+app = FastBPMN(
     name="Bob"
 )
 
 
-@minion.external_task(
+@app.external_task(
     topic="without-args"
 )
 async def no_args() -> None:
@@ -186,23 +172,22 @@ You can declare an external task such that you will receive this objects for usa
 > Task and TaskProperties Class are likely to change in the future.
 
 ```python
-from yio_minions import YioMinion
-from yio_minions.task import Task, TaskProperties
-from yio_minions.camunda import ProcessEngine
+from fastbpmn import FastBPMN
+from fastbpmn.task import Task, TaskProperties
+from fastbpmn.camunda import ProcessEngine
 
-pe = ProcessEngine(process_key='order-process')
-minion = YioMinion(
-    process_engine=pe,
+app = FastBPMN(
     name="Bob"
 )
 
-@minion.external_task(
+
+@app.external_task(
     topic="task-info",
     input_class=None,
     output_class=None,
 )
 async def print_taskinfo(input_data: None, task: Task, task_properties: TaskProperties) -> None:
-    print(f"TaskId: {task.task_id} - initial retries: {task_properties.retries}")
+    print(f"TaskId: {task.id} - initial retries: {task_properties.retries}")
     return
 ```
 
@@ -211,19 +196,18 @@ async def print_taskinfo(input_data: None, task: Task, task_properties: TaskProp
 A Process is a useful Method to create more structured code.
 
 ```python
-from yio_minions import YioMinion, Process
-from yio_minions.task import Task, TaskProperties
-from yio_minions.camunda import ProcessEngine
+from fastbpmn import FastBPMN, Process
+from fastbpmn.task import Task, TaskProperties
+from fastbpmn.camunda import ProcessEngine
 
-pe = ProcessEngine()
-minion = YioMinion(
-    process_engine=pe,
+app = FastBPMN(
     name="Bob"
 )
 
 process_a = Process(
     process_definition_key="ProzessA"
 )
+
 
 @process_a.external_task("print_a")
 async def print_a(input_data: None) -> None:
@@ -236,6 +220,7 @@ process_b = Process(
     process_definition_key="ProzessB"
 )
 
+
 @process_b.external_task("print_b")
 async def print_b(input_data: None) -> None:
     print("Hello from a Prozess B Only Task.")
@@ -245,7 +230,7 @@ async def print_b(input_data: None) -> None:
 # You can also attach a TaskHandler method to multiple Processes
 
 async def print_common(input_data: None, task: Task, task_properties: TaskProperties) -> None:
-    print(f"Hello from a common task, i was executed by process ... {task.process_key}.")
+    print(f"Hello from a common task, i was executed by process ... {task.process_definition_key}.")
     return
 
 
@@ -263,13 +248,11 @@ You can make use of a context within your external task. The context provides so
 (e.g. create of temporary files / directories).
 
 ```python
-from yio_minions import YioMinion, Process
-from yio_minions.context import Context, Delete
-from yio_minions.camunda import ProcessEngine
+from fastbpmn import FastBPMN, Process
+from fastbpmn.context import Context, Delete
+from fastbpmn.camunda import ProcessEngine
 
-pe = ProcessEngine()
-minion = YioMinion(
-    process_engine=pe,
+app = FastBPMN(
     name="Bob"
 )
 
@@ -277,11 +260,13 @@ process_a = Process(
     process_definition_key="ProzessA"
 )
 
+
 @process_a.external_task("everlasting-file")
 async def print_a(ctx: Context) -> None:
     print("Hello from a Prozess A, I create a file that is not deleted ....")
     file_path = ctx.temp_file(flags=Delete.NEVER)
     return
+
 
 @process_a.external_task("deleted-file")
 async def print_b(ctx: Context) -> None:
@@ -312,23 +297,15 @@ from functools import cached_property
 
 from pydantic import computed_field, model_validator
 
-from yio_minions import YioMinion, Process
-from yio_minions.context import Context
-from yio_minions.camunda import ProcessEngine
-from yio_minions.models import BaseInputModel, FileInfo, get_file_info_indirect
-
-pe = ProcessEngine()
-minion = YioMinion(
-    process_engine=pe,
-    name="Bob"
-)
+from fastbpmn import FastBPMN, Process
+from fastbpmn.context import Context
+from fastbpmn.camunda import ProcessEngine
+from fastbpmn.models import BaseInputModel, FileInfo, get_file_info_indirect
 
 process_a = Process(
     process_definition_key="ProzessA"
 )
-
-pe = ProcessEngine(process_key='order-process')
-minion = YioMinion(process_engine=pe, name="Bob")
+app = FastBPMN(name="Bob")
 
 
 class Option1InputModel(BaseInputModel):
