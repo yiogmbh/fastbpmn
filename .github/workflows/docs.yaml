@@ -1,0 +1,13 @@
+name: Update Documentation
+on:
+  push:
+    branches:
+      - feature/add-dedicated-docs
+      - main
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  docs:
+    uses: ./.github/workflows/reusable_docs.yaml
