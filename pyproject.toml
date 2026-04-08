@@ -49,7 +49,7 @@ license-files = [
 
 [project.urls]
 Homepage = "https://yio.at"
-Documentation = "https://docs.yio.at/products/yio-minions"
+Documentation = "https://yiogmbh.github.io/fastbpmn/"
 Repository = "https://github.com/yiogmbh/fastbpmn.git"
 Issues = "https://github.com/yiogmbh/fastbpmn/issues"
 Changelog="https://github.com/yiogmbh/fastbpmn/blob/main/CHANGELOG.md"
