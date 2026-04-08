@@ -19,12 +19,13 @@ jobs:
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v8.0.0
 
+      - run: cp CHANGELOG.md docs/CHANGELOG.md
+        shell: bash
+
       - run: uv run zensical build --clean
         working-directory: docs
       - uses: actions/upload-pages-artifact@v4
-        if: false
         with:
           path: docs/site
       - uses: actions/deploy-pages@v4
-        if: false
         id: deployment
