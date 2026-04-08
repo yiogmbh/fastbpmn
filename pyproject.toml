@@ -1,8 +1,6 @@
 [project]
 name = "fastbpmn"
-description = """A framework for creating external tasks for various BPMN process engines.
-Focus on the business logic and let the framework handle the rest.
-"""
+description = "A framework for external tasks for various BPMN process engines. Focus on the business logic and let the framework handle the rest."
 readme = "README.md"
 
 version = "0.1.0"
