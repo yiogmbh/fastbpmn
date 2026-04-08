@@ -2,172 +2,89 @@
 icon: lucide/rocket
 ---
 
+![fastbpmn logo](assets/logo.png)
+
 # Get started
 
-For full documentation visit [zensical.org](https://zensical.org/docs/).
+## Prerequisites
 
-## Commands
+* [ ] a camunda7 compatible process engine (squirrel currently supports camunda7 and derivatives only)
+* [ ] a process full of external tasks / service tasks you want to process
+* [ ] a few minutes to setup your python project
 
-* [`zensical new`][new] - Create a new project
-* [`zensical serve`][serve] - Start local web server
-* [`zensical build`][build] - Build your site
+## Installation
 
-  [new]: https://zensical.org/docs/usage/new/
-  [serve]: https://zensical.org/docs/usage/preview/
-  [build]: https://zensical.org/docs/usage/build/
-
-## Examples
-
-### Admonitions
-
-> Go to [documentation](https://zensical.org/docs/authoring/admonitions/)
-
-!!! note
-
-    This is a **note** admonition. Use it to provide helpful information.
-
-!!! warning
-
-    This is a **warning** admonition. Be careful!
-
-### Details
-
-> Go to [documentation](https://zensical.org/docs/authoring/admonitions/#collapsible-blocks)
-
-??? info "Click to expand for more info"
-
-    This content is hidden until you click to expand it.
-    Great for FAQs or long explanations.
-
-## Code Blocks
-
-> Go to [documentation](https://zensical.org/docs/authoring/code-blocks/)
-
-``` python hl_lines="2" title="Code blocks"
-def greet(name):
-    print(f"Hello, {name}!") # (1)!
-
-greet("Python")
+```shell
+# add fastbpmn as dependency to your project
+uv add fastbpmn
 ```
 
-1.  > Go to [documentation](https://zensical.org/docs/authoring/code-blocks/#code-annotations)
+## Minimal Example
 
-    Code annotations allow to attach notes to lines of code.
+``` python title="example.py"
+from contextlib import asynccontextmanager
 
-Code can also be highlighted inline: `#!python print("Hello, Python!")`.
+import structlog
 
-## Content tabs
+import squirrel
+from fastbpmn import FastBPMN
+from fastbpmn.models import BaseOutputModel
 
-> Go to [documentation](https://zensical.org/docs/authoring/content-tabs/)
 
-=== "Python"
+logger = structlog.get_logger(__name__)
 
-    ``` python
-    print("Hello from Python!")
-    ```
+@asynccontextmanager
+async def lifespan(app):
+    logger.info("init your resources here")
+    yield
+    logger.info("ensure to proper close them here")
 
-=== "Rust"
 
-    ``` rs
-    println!("Hello from Rust!");
-    ```
+minion = FastBPMN(
+    name="Bob",
+    lifespan=lifespan
+)
 
-## Diagrams
+class Greeting(BaseOutputModel):
 
-> Go to [documentation](https://zensical.org/docs/authoring/diagrams/)
+    greeting: str
 
-``` mermaid
-graph LR
-  A[Start] --> B{Error?};
-  B -->|Yes| C[Hmm...];
-  C --> D[Debug];
-  D --> B;
-  B ---->|No| E[Yay!];
+
+@minion.external_task(
+    topic="build-greeting",
+    output_class=Greeting,
+)
+def build_greeting():
+    return Greeting(greeting="Hello from FastBPMN")
+
+@minion.external_task(
+    topic="build-greeting",
+    input_class=Greeting,
+)
+def shoutout(value: Greeting):
+    logger.info(f"shoutout: {value.greeting}")
+
+
+if __name__ == '__main__':
+    from structlog_config import configure_logger
+    log = configure_logger()
+
+    #structlog.stdlib.recreate_defaults(log_level=logging.INFO)
+
+    squirrel.run(
+        minion,
+        flavour="camunda7",
+
+        name="bob",
+        workers=10,
+        camunda_url="https://pe.yio.at/engine-rest/",
+        camunda_username="<your username>",
+        camunda_password="<your password>,
+    )
 ```
 
-## Footnotes
+## Start
 
-> Go to [documentation](https://zensical.org/docs/authoring/footnotes/)
-
-Here's a sentence with a footnote.[^1]
-
-Hover it, to see a tooltip.
-
-[^1]: This is the footnote.
-
-
-## Formatting
-
-> Go to [documentation](https://zensical.org/docs/authoring/formatting/)
-
-- ==This was marked (highlight)==
-- ^^This was inserted (underline)^^
-- ~~This was deleted (strikethrough)~~
-- H~2~O
-- A^T^A
-- ++ctrl+alt+del++
-
-## Icons, Emojis
-
-> Go to [documentation](https://zensical.org/docs/authoring/icons-emojis/)
-
-* :sparkles: `:sparkles:`
-* :rocket: `:rocket:`
-* :tada: `:tada:`
-* :memo: `:memo:`
-* :eyes: `:eyes:`
-
-## Maths
-
-> Go to [documentation](https://zensical.org/docs/authoring/math/)
-
-$$
-\cos x=\sum_{k=0}^{\infty}\frac{(-1)^k}{(2k)!}x^{2k}
-$$
-
-!!! warning "Needs configuration"
-    Note that MathJax is included via a `script` tag on this page and is not
-    configured in the generated default configuration to avoid including it
-    in a pages that do not need it. See the documentation for details on how
-    to configure it on all your pages if they are more Maths-heavy than these
-    simple starter pages.
-
-<script id="MathJax-script" src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
-<script>
-  window.MathJax = {
-    tex: {
-      inlineMath: [["\\(", "\\)"]],
-      displayMath: [["\\[", "\\]"]],
-      processEscapes: true,
-      processEnvironments: true
-    },
-    options: {
-      ignoreHtmlClass: ".*|",
-      processHtmlClass: "arithmatex"
-    }
-  };
-
-  document$.subscribe(() => {
-    MathJax.startup.output.clearCache()
-    MathJax.typesetClear()
-    MathJax.texReset()
-    MathJax.typesetPromise()
-  })
-</script>
-
-## Task Lists
-
-> Go to [documentation](https://zensical.org/docs/authoring/lists/#using-task-lists)
-
-* [x] Install Zensical
-* [x] Configure `zensical.toml`
-* [x] Write amazing documentation
-* [ ] Deploy anywhere
-
-## Tooltips
-
-> Go to [documentation](https://zensical.org/docs/authoring/tooltips/)
-
-[Hover me][example]
-
-  [example]: https://example.com "I'm a tooltip!"
+```shell
+uv run example.py
+```
