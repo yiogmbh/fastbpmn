@@ -1,6 +1,8 @@
 [project]
 name = "fastbpmn"
-description = "A framework allowing to write external tasks for various bpmn process engines."
+description = """A framework for creating external tasks for various BPMN process engines.
+Focus on the business logic and let the framework handle the rest.
+"""
 readme = "README.md"
 
 version = "0.1.0"
@@ -31,10 +33,12 @@ dependencies = [
 requires-python = ">=3.11"
 
 keywords = [
+    "camunda",
+    "bpmn",
+    "process engine",
     "minions",
     "yio",
-    "process engine",
-    "aetpi - async external task processing interfance"
+    "aetpi - async external task processing interface"
 ]
 
 classifiers = [
