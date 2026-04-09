@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - *(docs)* Bootstrap dedicated documentation for fastbpmn (#5)
 
+### 🐛 Bug Fixes
+
+- *(cicd)* Push updated changelog only with changes (#6)
+- *(cicd)* Push updated changelog only with changes (#6) (#7)
+
 
 ## [0.1.1] - 2026-04-08
 
