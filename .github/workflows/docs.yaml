@@ -1,0 +1,25 @@
+name: Update Documentation
+on:
+  # Everytime our CHANGELOG is updated or one of the files within docs
+  # we want our docs to be updated (main branch only)
+  push:
+    branches:
+      - main
+    paths:
+      - CHANGELOG.md
+      - docs/**
+  pull_request:
+    branches:
+      - main
+    paths:
+      - CHANGELOG.md
+      - docs/**
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  docs:
+    uses: ./.github/workflows/reusable_docs.yaml
+    with:
+      publish: ${{ github.ref == 'refs/heads/main' }}

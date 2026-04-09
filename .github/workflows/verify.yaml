@@ -1,12 +1,22 @@
 name: Lint & Test
 on:
+  # Run verify only if non-docs file changes
+  # (save resources in case of docs updates)
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - docs/**
   push:
     branches:
       - main
+    paths-ignore:
+      - docs/**
 
+# let verification
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   verify:
@@ -15,3 +25,4 @@ jobs:
       build: true
       lint: true
       test: true
+      publish: ${{ github.ref == 'refs/heads/main' }}
