@@ -1,6 +1,11 @@
-name: Update Documentation
+name: Build / Publish Documentation
 on:
   workflow_call:
+    inputs:
+      publish:
+        description: "Whether to publish docs"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -14,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/configure-pages@v5
+        if: inputs.publish
       - name: Check out repository
         uses: actions/checkout@v6
       - name: Install the latest version of uv
@@ -26,7 +32,9 @@ jobs:
       - run: uv run zensical build --clean
         working-directory: docs
       - uses: actions/upload-pages-artifact@v4
+        if: inputs.publish
         with:
           path: docs/site
       - uses: actions/deploy-pages@v4
+        if: inputs.publish
         id: deployment
