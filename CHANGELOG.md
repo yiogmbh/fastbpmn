@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🚀 Features
 
-- *(docs)* Add zensical as dev alike dependency
+- *(docs)* Bootstrap dedicated documentation for fastbpmn (#5)
 
 
 ## [0.1.1] - 2026-04-08
@@ -27,3 +27,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Init (#1)
 - *(cicd)* Enable docker build (#4)
+
+
