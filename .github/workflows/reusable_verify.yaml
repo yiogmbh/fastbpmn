@@ -17,6 +17,11 @@ on:
         type: boolean
         default: true
 
+      publish:
+        description: "Whether to publish any built artifacts"
+        type: boolean
+        default: false
+
 jobs:
 
   python-tests:
@@ -71,3 +76,5 @@ jobs:
 
   docker-build:
     uses: ./.github/workflows/reusable_dockerbuild.yaml
+    with:
+      push: ${{ inputs.publish }}

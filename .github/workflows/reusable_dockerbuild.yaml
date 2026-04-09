@@ -1,6 +1,11 @@
 name: Docker
 on:
   workflow_call:
+    inputs:
+      push:
+        description: "Whether to publish any built artifacts"
+        type: boolean
+        default: false
 jobs:
   docker-build:
     uses: docker/github-builder/.github/workflows/build.yml@v1
@@ -12,7 +17,7 @@ jobs:
       attestations: write
     with:
       output: image
-      push: true
+      push: ${{ inputs.push }}
       context: .
       file: ./docker-images/Dockerfile
       target: fastbpmn
