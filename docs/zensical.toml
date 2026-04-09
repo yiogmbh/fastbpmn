@@ -46,6 +46,7 @@ Copyright &copy; 2026 yio gmbh
 # Read more: https://zensical.org/docs/setup/navigation/
 nav = [
     { "Get started" = "index.md" },
+    { "Roadmap" = "roadmap.md"},
     { "Changelog" = "changelog.md"}
 ]
 
