@@ -12,14 +12,10 @@ permissions:
   pages: write
   id-token: write
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  verify:
+    if: ${{ ! inputs.publish }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/configure-pages@v5
-        if: inputs.publish
       - name: Check out repository
         uses: actions/checkout@v6
       - name: Install the latest version of uv
@@ -29,12 +25,30 @@ jobs:
           cat docs/intermediate/front_matter_changelog.md CHANGELOG.md > docs/docs/changelog.md
         shell: bash
 
-      - run: uv run zensical build --clean
+      - run: uv run --only-group docs zensical build --clean
+        working-directory: docs
+
+  deploy:
+    if: inputs.publish
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v8.0.0
+
+      - run: |
+          cat docs/intermediate/front_matter_changelog.md CHANGELOG.md > docs/docs/changelog.md
+        shell: bash
+
+      - run: uv run --only-group docs zensical build --clean
         working-directory: docs
       - uses: actions/upload-pages-artifact@v4
-        if: inputs.publish
         with:
           path: docs/site
       - uses: actions/deploy-pages@v4
-        if: inputs.publish
         id: deployment
