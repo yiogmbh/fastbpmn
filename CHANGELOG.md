@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🚀 Features
 
 - *(docs)* Bootstrap dedicated documentation for fastbpmn (#5)
+- *(docs)* Add integration documentation for cib7 (#8)
 
 ### 🐛 Bug Fixes
 
