@@ -50,6 +50,7 @@ nav = [
     { "Changelog" = "changelog.md"},
     { "Integrations" = [
         "integrations/camunda7.md",
+        "integrations/operaton.md",
         "integrations/cibseven.md"
     ]}
 ]
