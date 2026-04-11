@@ -3,7 +3,7 @@
 [Operaton](https://operaton.org) is an open-source Camunda 7 fork. fastbpmn is fully compatible with it —
 the `camunda7` flavour works out of the box.
 
-This guide walks you through a [self-contained example](https://github.com/yiogmbh/fastbpmn/tree/main/examples/camunda7/)
+This guide walks you through a [self-contained example](https://github.com/yiogmbh/fastbpmn/tree/main/examples/operaton/)
 that:
 
 1. Starts a local Operaton instance
