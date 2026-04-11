@@ -49,6 +49,7 @@ nav = [
     { "Roadmap" = "roadmap.md"},
     { "Changelog" = "changelog.md"},
     { "Integrations" = [
+        "integrations/camunda7.md",
         "integrations/cibseven.md"
     ]}
 ]
