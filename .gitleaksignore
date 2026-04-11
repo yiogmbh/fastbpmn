@@ -1,2 +1,6 @@
 examples/cibseven/docker-compose.yaml:curl-auth-user:58
 examples/cibseven/docker-compose.yaml:curl-auth-user:45
+examples/camunda7/docker-compose.yaml:curl-auth-user:58
+examples/camunda7/docker-compose.yaml:curl-auth-user:45
+examples/operaton/docker-compose.yaml:curl-auth-user:58
+examples/operaton/docker-compose.yaml:curl-auth-user:45

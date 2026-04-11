@@ -1,0 +1,69 @@
+networks:
+  process-engine:
+
+
+services:
+  operaton:
+    image: operaton/operaton:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_DRIVER=org.h2.Driver
+      - DB_URL=jdbc:h2:mem:process-engine;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      - DB_USERNAME=sa
+      - DB_PASSWORD=
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/engine-rest/engine"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      process-engine:
+
+  # build and start a fastbpmn application handling the example process
+  fasbpmn:
+    build:
+      context: .
+    depends_on:
+      operaton:
+        condition: service_healthy
+    environment:
+      engine_url: "http://operaton:8080/engine-rest/"
+      engine_username: "demo"
+      engine_password: "demo"
+    networks:
+      - process-engine
+  # deploy example process using rest-api
+  deploy:
+    image: curlimages/curl:latest
+    depends_on:
+      operaton:
+        condition: service_healthy
+    volumes:
+      - ./example.bpmn:/bpmn/example.bpmn:ro
+    command: >
+      curl --user demo:demo --silent --output /dev/null --write-out "%{http_code}"
+      -F "deployment-name=example"
+      -F "deployment-source=fastbpmn-example"
+      -F "enable-duplicate-filtering=false"
+      -F "deploy-changed-only=true"
+      -F "example.bpmn=@/bpmn/example.bpmn"
+      http://operaton:8080/engine-rest/deployment/create
+    networks:
+      - process-engine
+    restart: on-failure
+
+  # start example process using rest-api
+  start:
+    image: curlimages/curl:latest
+    depends_on:
+      deploy:
+        condition: service_completed_successfully
+    command: >
+      curl --user demo:demo --silent --output /dev/null --write-out "%{http_code}"
+      -H "Content-Type: application/json"
+      -d "{}"
+      http://operaton:8080/engine-rest/process-definition/key/example/start
+    networks:
+      - process-engine
+    restart: on-failure
