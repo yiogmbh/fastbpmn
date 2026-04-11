@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - *(cicd)* Push updated changelog only with changes (#6)
 - *(cicd)* Push updated changelog only with changes (#6) (#7)
+- *(docs)* Correct link to self-contained operaton example
 
 
 ## [0.1.1] - 2026-04-08
