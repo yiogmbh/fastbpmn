@@ -5,7 +5,8 @@ import typing
 from typing import Any, Callable, Dict, Optional
 
 from fastbpmn.context import Context
-from fastbpmn.task import Task, TaskProperties
+from fastbpmn.params import ProcessInstance, Task
+from fastbpmn.task import TaskProperties
 
 __all__ = ["is_async_callable", "map_params"]
 
@@ -16,6 +17,8 @@ def map_params(
     task: Task,
     task_properties: TaskProperties,
     context: Context,
+    *,
+    scope: Dict[str, Any] = None,
 ) -> Dict[str, Any]:
 
     signature = inspect.signature(func)
@@ -33,6 +36,11 @@ def map_params(
 
         if arg_class.annotation == Context:
             mapped_params[arg_name] = context
+
+        if arg_class.annotation == ProcessInstance:
+            mapped_params[arg_name] = ProcessInstance(
+                **scope.get("x_process_instance", {})
+            )
 
         # Try to figure out which named argument should be used for the input_model data
         if input_model and arg_class.annotation is type(input_model):
