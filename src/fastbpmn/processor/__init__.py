@@ -173,7 +173,9 @@ class ExternalTaskProcessor:
         # TODO: create task ... (we need a new implementation without pe dep)
         task = Task(**task_scope)
 
-        params = map_params(handler, input_data, task, task_properties, context)
+        params = map_params(
+            handler, input_data, task, task_properties, context, scope=scope
+        )
 
         handler = TaskHandler(handler, kwargs=params)
         heartbeat = HeartbeatHandler(scope, send)

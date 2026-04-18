@@ -431,6 +431,12 @@ class Camunda7ServerWorker:
         scope["x_download_file_var"] = download_file_var
         scope["x_upload_file_var"] = upload_file_var
 
+        scope[
+            "x_process_instance"
+        ] = await self.process_engine.process_instance_properties(
+            process_instance_id=scope["task"]["process_instance_id"]
+        )
+
         # First indicate the start of an arbitrary external task
         await send_queue.put(utils.create_event_start())
         await send_queue.put(utils.create_event_lock_request())
