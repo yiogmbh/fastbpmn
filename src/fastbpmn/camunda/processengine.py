@@ -1,15 +1,11 @@
 import copy
-import json
 import logging
-import time
-from collections import Counter
-from random import shuffle as shuffle_topics
-from typing import Any, List, Optional, Pattern, Set, Tuple
-from uuid import UUID
+from typing import Any, List, Optional, Tuple
 
 import httpx
 from aetpiref.typing import TaskScope
 from pydantic import HttpUrl, TypeAdapter
+from pydantic.alias_generators import to_snake
 from structlog import getLogger
 from tenacity import (
     after_log,
@@ -26,11 +22,9 @@ from .asynchttp import AsyncCamundaHTTP
 from .errors import (
     DeadlockSituationOccurredError,
     OptimisticLockError,
-    ProcessNotFound,
     RetryableError,
 )
 from .models import ExternalTask
-from .utils import filter_predicate
 
 logger = getLogger(__name__)
 task_scope_adapter = TypeAdapter(list[ExternalTask])
@@ -93,137 +87,25 @@ class ProcessEngine:
         self.process_definition_id = None
         self._count = 0
         self._batch_size = batch_size
-        if process_key:
-            self.check_process(process_key=process_key, tenant_id=self._tenant_id)
 
-    async def count_instances(
-        self, process_key: str = None, business_key: str = None, tenant_id: str = None
-    ) -> int:
-        """
-        Check running instances with same process definition key
+    @property
+    def tenant_ids(self):
+        """List of tenant_ids"""
+        return self._tenant_ids
 
-        :param process_key: Process definition key
-        :param business_key: Business key
-        :param tenant_id: Process tenant_id
-        """
-
-        if not process_key and not business_key:
-            raise ValueError("Either process_key or business_key need to be given")
-
-        data = {
-            "active": "true",
-        }
-        if process_key:
-            data.update(processDefinitionKey=process_key)
-        if business_key:
-            data.update(businessKeyLike=business_key)
-        if tenant_id:
-            data.update(tenantIdIn=tenant_id)
-
-        res = await self.request.get("/process-instance/count", params=data)
-        return res.get("count", 0) if res else 0
-
-    async def check_process(self, process_key: str, tenant_id: str = None) -> None:
-        """
-        Check if process exists and set ProcessDefinitionId
-
-        :param process_key:
-        :param tenant_id:
-        """
-
-        if tenant_id:
-            path = f"/process-definition/key/{process_key}/tenant-id/{tenant_id}"
-        else:
-            path = f"/process-definition/key/{process_key}"
-
-        res = await self.request.get(path)
-
-        if res.get("code") == 404:
-            message = "Process Not Found"
-            hint = f"Camunda API returned: {res}"
-            raise ProcessNotFound(message=message, hint=hint)
-
-        if not res.get("id"):
-            raise ProcessNotFound(message="Missing ProcessDefinitionId")
-        self.process_definition_id = res.get("id")
-
-    async def delete_process_instance(self, piid: UUID) -> bool:
-        """
-        Delete process instance
-        :param piid: process instance ID
-        """
-
-        logger.warning("delete process-instance %s", piid)
-        res = await self.request.delete(f"/process-instance/{piid}")
-        return res.status_code == 204
-
-    async def get_status(self, piid: UUID) -> dict:
+    @semaphore(n=5)
+    async def process_instance_properties(
+        self, process_instance_id: str
+    ) -> dict | None:
         """
         Check (history) status for given process instance
         :return:
         """
-
-        params = {
-            "processInstanceId": piid,
-        }
-        res = await self.request.get(f"/history/process-instance/{piid}")
-        vres = await self.request.post("/history/variable-instance", data=params)
-
-        return {
-            "process": res,
-            "variables": [{i["name"]: i["value"]} for i in vres],
-        }
-
-    async def get_instances(self, process_key: str = None, delete: bool = False):
-        """
-        Check currently running instances with same process_key
-        :param process_key:
-        :param delete:
-        """
-
-        res = await self.request.get(
-            f"/process-instance/?processDefinitionKey={process_key}"
+        camunda_values = await self.request.get(
+            f"/history/process-instance/{process_instance_id}"
         )
-        for j in res:
-            wid = j["id"]
-            if delete:
-                self.delete_process_instance(wid)
-        return res
 
-    async def check_instances(self, business_key: str = None):
-        """
-        Check currently running instances with same business key
-        :return:
-        """
-
-        params = {
-            "businessKeyLike": business_key,
-            "active": "true",
-        }
-        if self.tenant_ids:
-            params.update(tenantIdIn=self.tenant_ids)
-        res = await self.request.post("/process-instance/count", data=params)
-        return res.get("count", 0)
-
-    async def external_task_fetch_process_instance(
-        self, process_instance_id: str
-    ) -> dict | bool:
-        """
-        Try to get a lock for the external task specified by its id
-
-        :params process_instance_id: the id of the external task
-        :params worker_id: the id of the worker that wants to lock the task
-        :params duration: (optional) the duration in milliseconds for which the lock should be valid
-        """
-        params = {"deserializeValues": False}
-        try:
-            return await self.request.get_raw(
-                f"/process-instance/{process_instance_id}/variables", params=params
-            )
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code in (500,):
-                return False
-            raise exc
+        return {to_snake(k): v for k, v in camunda_values.items()}
 
     async def process_instance_execution_ids(
         self, process_instance_id: str, execution_id: str
@@ -586,150 +468,3 @@ class ProcessEngine:
 
         dumped = task_scope_adapter.dump_python(snaked, by_alias=False)
         return dumped
-
-    async def get_pending_tasks_old(
-        self,
-        topics: Tuple[str, ...],
-        business_key_pattern: Optional[Pattern] = None,
-        batch_size: int = None,
-        shuffle: bool = False,
-    ) -> List[ExternalTask]:
-        """
-        Get list of pending tasks by task/topic name.
-        Filter on tenant_ids, process_keys and topics.
-
-        :param list topics: topics to filter
-        :param business_key_pattern: filter on business_key if given
-        :param batch_size: maximum number of tasks to return ad once, default 10
-        :param bool shuffle: randomize topics, default False
-
-        :return: List of pending tasks
-        """
-
-        params = {
-            "withRetriesLeft": 1,
-            "notLocked": 1,
-            "sorting": [
-                {
-                    "sortBy": "taskPriority",
-                    "sortOrder": "desc",
-                },
-            ],
-        }
-        if self.tenant_ids:
-            params.update(tenantIdIn=self.tenant_ids)
-
-        if self.processDefinitionId:
-            params.update(processDefinitionId=self.processDefinitionId)
-
-        res = await self.request.post("/external-task", data=params)
-        if not res:
-            logger.debug("No pending tasks")
-            return []
-
-        process_keys = [x.get("processDefinitionKey") for x in res]
-        logger.debug("process_keys: %s", json.dumps(Counter(process_keys), indent=4))
-        # ic(process_keys, topics)
-
-        task_predicate = filter_predicate(
-            topics=topics, business_key_pattern=business_key_pattern
-        )
-
-        # apply filters
-        external_tasks = list(filter(task_predicate, (ExternalTask(**v) for v in res)))
-
-        # put the highest priority last because we pop from the end
-        # pending.reverse()
-        if shuffle:
-            shuffle_topics(external_tasks)
-
-        return external_tasks[: (batch_size or self._batch_size)]
-
-    async def count_pending_tasks(self, topics=Set[str], fast: bool = True) -> int:
-        """
-        Get number of pending tasks for multiple topics
-
-        :param topics: list of topics to be checked
-        :param fast: immediately return on first found task
-
-        :return: number of pending tasks on given topics
-        """
-
-        params_default = {
-            "withRetriesLeft": 1,
-            "notLocked": 1,
-        }
-        if self.tenant_ids:
-            params_default.update(tenantIdIn=self.tenant_ids)
-
-        if self.processDefinitionId:
-            params_default.update(processDefinitionId=self.processDefinitionId)
-
-        # get number of open tasks
-        count = 0
-        if not topics:
-            return count
-
-        for _, topic in enumerate(topics):
-            params = params_default.update(topicName=topic)
-            res = await self.request.post("/external-task/count", data=params)
-            if not res:
-                return 0
-            count += res.get("count", 0)
-            if count and fast:
-                return count
-
-        if not count:
-            time.sleep(1.0)
-            return 0
-
-        logger.debug("got %s pending tasks", count)
-        return count
-
-    @property
-    def tenant_ids(self):
-        """List of tenant_ids"""
-        return self._tenant_ids
-
-    @property
-    def tenantIdIn(self):  # pylint: disable=invalid-name
-        """Camunda naming for tenant_ids"""
-        return self._tenant_ids
-
-    @property
-    def process_keys(self) -> List[str]:
-        """
-        List of process_keys
-        """
-        return [
-            self._process_key,
-        ]
-
-    @property
-    def process_key(self) -> str:
-        """List of process_keys"""
-        return self._process_key
-
-    @property
-    def processDefinitionKey(self) -> str:  # pylint: disable=invalid-name
-        """
-        Camunda naming for process_definition_id
-        """
-        return self._process_key
-
-    @property
-    def processDefinitionId(self) -> Optional[str]:  # pylint: disable=invalid-name
-        """
-        Camunda naming for process_definition_id
-        """
-        # return self.process_definition_id
-        return None
-
-    @property
-    def processDefinitionIds(self) -> List[str]:  # pylint: disable=invalid-name
-        """
-        Camunda naming for process_definition_id
-        """
-        return [
-            self.process_definition_id,
-        ]
