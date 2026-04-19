@@ -4,21 +4,12 @@ from typing import Annotated, Any, Callable, TypeVar
 from pydantic import BaseModel, ConfigDict, Field, PlainValidator
 
 
-class BaseInputModel(BaseModel):
-    """
-    A base model that should be used whenever you want to use values
-    within your external task (kind of base for input data)
-    """
-
+class InputOutputModel(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
 
 
-class BaseOutputModel(BaseModel):
-    """
-    A base model that should be used whenever you want to return
-    values from your external task (kind of base for response data)
-    """
-
+BaseInputModel = InputOutputModel
+BaseOutputModel = InputOutputModel
 
 InputModel = TypeVar("InputModel", bound=BaseInputModel)
 OutputModel = TypeVar("OutputModel", bound=BaseOutputModel)
