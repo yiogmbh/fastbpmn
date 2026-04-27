@@ -439,6 +439,34 @@ class TestResolveDependencies:
         assert_that(resolved.kwargs["sub3"]).contains_entry(**passed_vars, **dft_vars)
         assert_that(call_count).is_equal_to(1)
 
+    @pytest.mark.asyncio
+    async def test_with_arbitrary_depends_class(
+        self,
+        mocked_builtins: Builtins,
+        exit_stack: AsyncExitStack,
+    ):
+        class DepClass:
+            def print_hello(self, greet: str) -> str:
+                return f"Hello World {greet}"
+
+        def dep(printer: DepClass = Depends(DepClass)) -> str:
+            return printer.print_hello("bum")
+
+        def call(greet: str = Depends(dep)):
+            pass
+
+        passed_vars = {}
+        dependant = build_dependant(call)
+        resolved = await resolve_dependencies(
+            dependant,
+            variables=passed_vars,
+            builtins=mocked_builtins,
+            exit_stack=exit_stack,
+        )
+        assert_that(resolved).is_not_none().is_type_of(ResolvedDependant)
+        assert_that(resolved.kwargs).is_not_none().contains("greet")
+        assert_that(resolved.kwargs).contains_entry({"greet": "Hello World bum"})
+
     def test_some(self, mocked_builtins):
         assert_that(mocked_builtins).is_not_none()
         assert_that(mocked_builtins).contains("context")

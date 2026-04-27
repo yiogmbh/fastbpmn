@@ -47,7 +47,7 @@ def build_dependant(
             )
 
         # first we check for type hint indicating a builtin
-        if arg_class.annotation in (
+        elif arg_class.annotation in (
             ProcessInstance,
             Task,
             Context,
