@@ -93,10 +93,8 @@ test = [
     "pytest-httpx",
     "pyfakefs==6.1.1",
     "pytest-asyncio",
-    "pytest-freezegun==0.4.2",
-    "freezegun==1.5.5",
+    "pytest-freezer>=0.4.9",
     "assertpy==1.1",
-    "testcontainers[postgres]>=4.14.1",
     "polyfactory>=3.3.0",
 ]
 # we use this dependency group to prepare the environment for running tests
