@@ -1,7 +1,7 @@
 import inspect
 from dataclasses import dataclass, field
 from functools import partial, cached_property
-from typing import Generic, TypeVar, Callable, Any, Self
+from typing import Generic, TypeVar, Callable, Any, Self, ParamSpec
 
 from typing_extensions import TypedDict
 from pydantic import TypeAdapter
@@ -10,6 +10,8 @@ from fastbpmn.context import Context
 from fastbpmn.task import TaskProperties
 from fastbpmn.params import Task, ProcessInstance
 
+P = ParamSpec("P")
+T = TypeVar("T")
 TVar = TypeVar("TVar")
 TBuiltinType = TypeVar("TBuiltinType", Context, Task, ProcessInstance, TaskProperties)
 DependencyCacheKey = tuple[Callable[..., Any] | None]
@@ -66,7 +68,7 @@ class BuiltinTypeDependant(Generic[TBuiltinType]):
 @dataclass(frozen=True)
 class Dependant:
     name: str | None  # if its "top-most" this is ok to be none
-    call: Callable[..., Any] | None = None
+    call: Callable[P, T] | None = None
 
     input_variables: list[InputVariableDependant] = field(default_factory=list)
     input_models: list[InputModelDependant] = field(default_factory=list)

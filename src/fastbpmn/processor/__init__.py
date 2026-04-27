@@ -1,3 +1,4 @@
+from contextlib import AsyncExitStack
 from typing import Any, Protocol, Type
 
 import structlog
@@ -10,6 +11,8 @@ from aetpiref.typing import (
     TaskScope,
 )
 
+from fastbpmn.dependencies.models import Builtins
+from fastbpmn.dependencies.utils import build_dependant, resolve_dependencies
 from fastbpmn.aetpi import utils as eu
 from fastbpmn.context import Context
 from fastbpmn.errors.process_engine import (
@@ -21,7 +24,7 @@ from fastbpmn.processor.routing import build_task_matcher
 from fastbpmn.processor.task import HeartbeatHandler, TaskHandler, execute
 from fastbpmn.result import ExternalTaskResult
 from fastbpmn.task import Task, TaskProperties
-from fastbpmn.utils.inspect import map_params
+from fastbpmn.params import ProcessInstance
 
 logger = structlog.getLogger(__name__)
 
@@ -167,25 +170,37 @@ class ExternalTaskProcessor:
         context: Context = scope["context"]
 
         handler = task_properties.handler
-        input_data = await self._decode_input(
-            task_properties.input_class, context, event["variables"]
-        )
-        # TODO: create task ... (we need a new implementation without pe dep)
-        task = Task(**task_scope)
 
-        params = map_params(
-            handler, input_data, task, task_properties, context, scope=scope
-        )
+        builtins: Builtins = {
+            "context": context,
+            "task": Task(**task_scope),
+            "task_properties": task_properties,
+            "process_instance": ProcessInstance(**scope.get("x_process_instance", {})),
+        }
+        dependant = build_dependant(handler, None)
 
-        handler = TaskHandler(handler, kwargs=params)
-        heartbeat = HeartbeatHandler(scope, send)
+        assert dependant is not None, "dependant should not be None"
+        assert dependant.call is not None, "dependant call should not be None"
 
-        output = await execute(heartbeat, handler)
+        async with AsyncExitStack() as stack:
+            resolved = await resolve_dependencies(
+                dependant,
+                variables=event["variables"],
+                builtins=builtins,
+                exit_stack=stack,
+            )
+
+            handler = TaskHandler(dependant.call, kwargs=resolved.kwargs)
+            heartbeat = HeartbeatHandler(scope, send)
+
+            output = await execute(heartbeat, handler)
 
         # in case of direct response of a result, call the result
         if isinstance(output, ExternalTaskResult):
             return await output(scope, receive, send)
 
+        # Todo<dh>: refactor to support typed dicts, and arbitrary models
+        #           even support for annotated single variables might be possible
         # get a vars dict from output data
         vars_dict = await self._decode_output(
             task_properties.output_class, context, output
