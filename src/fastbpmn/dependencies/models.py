@@ -165,4 +165,4 @@ class Dependant:
 @dataclass(frozen=True)
 class ResolvedDependant:
     kwargs: dict[str, Any]
-    cache: dict[str, Any]
+    cache: dict[DependencyCacheKey, Any]

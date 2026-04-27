@@ -76,6 +76,7 @@ async def resolve_dependencies(
     variables: dict[str, Any],
     builtins: m.Builtins,
     exit_stack: AsyncExitStack,
+    dependency_cache: dict[m.DependencyCacheKey, Any] | None = None,
 ) -> m.ResolvedDependant:
 
     values_builtin = _resolve_builtin_dependants(
@@ -86,6 +87,7 @@ async def resolve_dependencies(
     values_models = _resolve_input_models(dependant.input_models, variables)
 
     values_calls = {}
+    dependency_cache = dependency_cache or {}
     # iterating sub dependencies to get resolved deps
     for sub_dep in dependant.sub_dependencies:
         sub_resolved = await resolve_dependencies(
@@ -93,9 +95,12 @@ async def resolve_dependencies(
             variables=variables,
             builtins=builtins,
             exit_stack=exit_stack,
+            dependency_cache=dependency_cache,
         )
 
-        if sub_dep.is_gen_callable:
+        if sub_dep.use_cache and sub_dep.cache_key in dependency_cache:
+            sub_result = dependency_cache[sub_dep.cache_key]
+        elif sub_dep.is_gen_callable:
             sub_result = await _resolve_yield_dependants(
                 sub_dep, values=sub_resolved.kwargs, stack=exit_stack
             )
@@ -109,12 +114,15 @@ async def resolve_dependencies(
             # run in thread pool (synchronous function alike)
             sub_result = await run_in_threadpool(sub_dep.call, **sub_resolved.kwargs)
 
+        if sub_dep.cache_key not in dependency_cache:
+            dependency_cache[sub_dep.cache_key] = sub_result
+
         values_calls[sub_dep.name] = sub_result
 
     # todo implement depends substuff
     values = values_builtin | values_vars | values_models | values_calls
 
-    return m.ResolvedDependant(kwargs=values, cache={})
+    return m.ResolvedDependant(kwargs=values, cache=dependency_cache)
 
 
 async def _resolve_yield_dependants(

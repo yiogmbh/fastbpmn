@@ -390,6 +390,50 @@ class TestResolveDependencies:
         assert_that(resolved.kwargs).is_not_none().contains("sub")
         assert_that(resolved.kwargs["sub"]).contains_entry(**passed_vars, **dft_vars)
 
+    @pytest.mark.asyncio
+    async def test_with_cached_deps(
+        self, mocked_builtins: Builtins, exit_stack: AsyncExitStack
+    ) -> None:
+
+        call_count = 0
+
+        async def sub_dep(var: uuid.UUID, greet: str, age: int = 15):
+            nonlocal call_count
+            call_count += 1
+            return {"var": var, "greet": greet, "age": age}
+
+        def other_dep(sub: dict = Depends(sub_dep)):
+            return sub
+
+        async def call(
+            sub1: dict = Depends(sub_dep),
+            sub2: dict = Depends(sub_dep),
+            sub3: dict = Depends(other_dep),
+        ) -> None:
+            pass
+
+        passed_vars = {
+            "var": uuid.uuid4(),
+            "greet": "Hello World",
+        }
+        dft_vars = {"age": 15}
+        dependant = build_dependant(call)
+
+        resolved = await resolve_dependencies(
+            dependant,
+            variables=passed_vars,
+            builtins=mocked_builtins,
+            exit_stack=exit_stack,
+            dependency_cache={},
+        )
+
+        assert_that(resolved).is_not_none().is_type_of(ResolvedDependant)
+        assert_that(resolved.kwargs).is_not_none().contains("sub1", "sub2", "sub3")
+        assert_that(resolved.kwargs["sub1"]).contains_entry(**passed_vars, **dft_vars)
+        assert_that(resolved.kwargs["sub2"]).contains_entry(**passed_vars, **dft_vars)
+        assert_that(resolved.kwargs["sub3"]).contains_entry(**passed_vars, **dft_vars)
+        assert_that(call_count).is_equal_to(1)
+
     def test_some(self, mocked_builtins):
         assert_that(mocked_builtins).is_not_none()
         assert_that(mocked_builtins).contains("context")
