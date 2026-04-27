@@ -1,5 +1,6 @@
 import uuid
-from typing import Any, Generator
+from contextlib import AsyncExitStack
+from typing import Any, Generator, AsyncGenerator
 from unittest import mock
 
 from typing_extensions import TypedDict
@@ -24,6 +25,14 @@ def mocked_builtins() -> Generator[Builtins, Any, None]:
         "process_instance": mock.MagicMock(ProcessInstance),
         "task_properties": mock.MagicMock(TaskProperties),
     }
+
+
+@pytest.fixture(scope="function")
+async def exit_stack() -> AsyncGenerator[AsyncExitStack[bool | None], None]:
+
+    async with AsyncExitStack() as stack:
+        yield stack
+        pass
 
 
 class TestBuildDependant:
@@ -150,7 +159,11 @@ class TestBuildDependant:
 
 class TestResolveDependencies:
     @pytest.mark.asyncio
-    async def test_builtins_only(self, mocked_builtins: Builtins) -> None:
+    async def test_builtins_only(
+        self,
+        mocked_builtins: Builtins,
+        exit_stack: AsyncExitStack,
+    ) -> None:
 
         def call(
             context: Context,
@@ -169,7 +182,7 @@ class TestResolveDependencies:
 
         dependant = build_dependant(call)
         resolved = await resolve_dependencies(
-            dependant, variables={}, builtins=mocked_builtins
+            dependant, variables={}, builtins=mocked_builtins, exit_stack=exit_stack
         )
 
         assert_that(resolved).is_not_none()
@@ -184,7 +197,7 @@ class TestResolveDependencies:
     )
     @pytest.mark.asyncio
     async def test_input_model_only(
-        self, mocked_builtins: Builtins, passed_vars: dict
+        self, mocked_builtins: Builtins, exit_stack: AsyncExitStack, passed_vars: dict
     ) -> None:
 
         class TestModel(BaseModel):
@@ -201,7 +214,10 @@ class TestResolveDependencies:
         expected_vars = dft_vars | passed_vars
 
         resolved = await resolve_dependencies(
-            dependant, variables=passed_vars, builtins=mocked_builtins
+            dependant,
+            variables=passed_vars,
+            builtins=mocked_builtins,
+            exit_stack=exit_stack,
         )
 
         assert_that(resolved).is_not_none().is_type_of(ResolvedDependant)
@@ -217,7 +233,9 @@ class TestResolveDependencies:
         # ).contains_entry(**expected_vars,)
 
     @pytest.mark.asyncio
-    async def test_variable_only(self, mocked_builtins: Builtins) -> None:
+    async def test_variable_only(
+        self, mocked_builtins: Builtins, exit_stack: AsyncExitStack
+    ) -> None:
 
         def call(var: uuid.UUID, greet: str, age: int = 15) -> None:
             pass
@@ -231,7 +249,10 @@ class TestResolveDependencies:
         dft_vars = {"age": 15}
 
         resolved = await resolve_dependencies(
-            dependant, variables=passed_vars, builtins=mocked_builtins
+            dependant,
+            variables=passed_vars,
+            builtins=mocked_builtins,
+            exit_stack=exit_stack,
         )
 
         assert_that(resolved).is_not_none().is_type_of(ResolvedDependant)
@@ -240,7 +261,9 @@ class TestResolveDependencies:
         ).contains_entry(**passed_vars, **dft_vars)
 
     @pytest.mark.asyncio
-    async def test_with_sub_dependency(self, mocked_builtins: Builtins) -> None:
+    async def test_with_sub_dependency(
+        self, mocked_builtins: Builtins, exit_stack: AsyncExitStack
+    ) -> None:
 
         def sub_dep(var: uuid.UUID, greet: str, age: int = 15) -> dict:
             return {
@@ -261,7 +284,10 @@ class TestResolveDependencies:
         dft_vars = {"age": 15}
 
         resolved = await resolve_dependencies(
-            dependant, variables=passed_vars, builtins=mocked_builtins
+            dependant,
+            variables=passed_vars,
+            builtins=mocked_builtins,
+            exit_stack=exit_stack,
         )
 
         assert_that(resolved).is_not_none().is_type_of(ResolvedDependant)
@@ -269,7 +295,9 @@ class TestResolveDependencies:
         assert_that(resolved.kwargs["sub"]).contains_entry(**passed_vars, **dft_vars)
 
     @pytest.mark.asyncio
-    async def test_with_async_sub_dependency(self, mocked_builtins: Builtins) -> None:
+    async def test_with_async_sub_dependency(
+        self, mocked_builtins: Builtins, exit_stack: AsyncExitStack
+    ) -> None:
 
         async def sub_dep(var: uuid.UUID, greet: str, age: int = 15) -> dict:
             return {
@@ -290,7 +318,72 @@ class TestResolveDependencies:
         dft_vars = {"age": 15}
 
         resolved = await resolve_dependencies(
-            dependant, variables=passed_vars, builtins=mocked_builtins
+            dependant,
+            variables=passed_vars,
+            builtins=mocked_builtins,
+            exit_stack=exit_stack,
+        )
+
+        assert_that(resolved).is_not_none().is_type_of(ResolvedDependant)
+        assert_that(resolved.kwargs).is_not_none().contains("sub")
+        assert_that(resolved.kwargs["sub"]).contains_entry(**passed_vars, **dft_vars)
+
+    @pytest.mark.asyncio
+    async def test_with_async_context_manager(
+        self, mocked_builtins: Builtins, exit_stack: AsyncExitStack
+    ) -> None:
+
+        async def sub_dep(
+            var: uuid.UUID, greet: str, age: int = 15
+        ) -> AsyncGenerator[dict[str, uuid.UUID | str | int], Any]:
+            yield {"var": var, "greet": greet, "age": age}
+
+        async def call(sub: dict = Depends(sub_dep)) -> None:
+            pass
+
+        passed_vars = {
+            "var": uuid.uuid4(),
+            "greet": "Hello World",
+        }
+        dft_vars = {"age": 15}
+        dependant = build_dependant(call)
+
+        resolved = await resolve_dependencies(
+            dependant,
+            variables=passed_vars,
+            builtins=mocked_builtins,
+            exit_stack=exit_stack,
+        )
+
+        assert_that(resolved).is_not_none().is_type_of(ResolvedDependant)
+        assert_that(resolved.kwargs).is_not_none().contains("sub")
+        assert_that(resolved.kwargs["sub"]).contains_entry(**passed_vars, **dft_vars)
+
+    @pytest.mark.asyncio
+    async def test_with_context_manager_decorated(
+        self, mocked_builtins: Builtins, exit_stack: AsyncExitStack
+    ) -> None:
+
+        def sub_dep(
+            var: uuid.UUID, greet: str, age: int = 15
+        ) -> AsyncGenerator[dict[str, uuid.UUID | str | int], Any]:
+            yield {"var": var, "greet": greet, "age": age}
+
+        async def call(sub: dict = Depends(sub_dep)) -> None:
+            pass
+
+        passed_vars = {
+            "var": uuid.uuid4(),
+            "greet": "Hello World",
+        }
+        dft_vars = {"age": 15}
+        dependant = build_dependant(call)
+
+        resolved = await resolve_dependencies(
+            dependant,
+            variables=passed_vars,
+            builtins=mocked_builtins,
+            exit_stack=exit_stack,
         )
 
         assert_that(resolved).is_not_none().is_type_of(ResolvedDependant)

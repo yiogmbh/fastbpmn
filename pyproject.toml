@@ -128,4 +128,5 @@ force-single-line = true
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "module"
 asyncio_default_test_loop_scope = "module"
+asyncio_mode = "auto"
 addopts =  "--ignore tests"

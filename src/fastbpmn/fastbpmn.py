@@ -31,7 +31,7 @@ from .middleware.exceptions import (
 from .models import InputModel, OutputModel
 from .process import Process
 from .task import TaskHandler, TaskProperties
-from .types import AppType, DecoratedCallable, Lifespan
+from ._types import AppType, DecoratedCallable, Lifespan
 from .utils.inspect import get_method_doc, get_method_name
 from .utils.names import get_random_name
 

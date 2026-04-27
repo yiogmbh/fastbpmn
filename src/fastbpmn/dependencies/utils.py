@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import inspect
+from contextlib import AsyncExitStack, contextmanager
 from inspect import Parameter
 from typing import Callable, Any
 
@@ -10,9 +11,12 @@ from typing_extensions import is_typeddict
 from fastbpmn.context import Context
 from fastbpmn.params import ProcessInstance, Task, Depends
 from fastbpmn.task import TaskProperties
+from fastbpmn.utils.concurrency import (
+    run_in_threadpool,
+    contextmanager_in_threadpool,
+    asynccontextmanager,
+)
 from . import models as m
-from .models import Builtins
-from ..utils.concurrency import run_in_threadpool
 
 
 def build_dependant(
@@ -67,15 +71,19 @@ def build_dependant(
 
 
 async def resolve_dependencies(
-    dependant: m.Dependant, *, variables: dict[str, Any], builtins: Builtins
+    dependant: m.Dependant,
+    *,
+    variables: dict[str, Any],
+    builtins: m.Builtins,
+    exit_stack: AsyncExitStack,
 ) -> m.ResolvedDependant:
 
-    values_builtin = resolve_builtin_dependants(
+    values_builtin = _resolve_builtin_dependants(
         dependant.builtins,
         builtins=builtins,
     )
-    values_vars = resolve_input_variables(dependant.input_variables, variables)
-    values_models = resolve_input_models(dependant.input_models, variables)
+    values_vars = _resolve_input_variables(dependant.input_variables, variables)
+    values_models = _resolve_input_models(dependant.input_models, variables)
 
     values_calls = {}
     # iterating sub dependencies to get resolved deps
@@ -84,15 +92,16 @@ async def resolve_dependencies(
             sub_dep,
             variables=variables,
             builtins=builtins,
+            exit_stack=exit_stack,
         )
 
         if sub_dep.is_gen_callable:
-            raise NotImplementedError(
-                "Callable generators / context managers not yet implemented"
+            sub_result = await _resolve_yield_dependants(
+                sub_dep, values=sub_resolved.kwargs, stack=exit_stack
             )
         elif sub_dep.is_async_gen_callable:
-            raise NotImplementedError(
-                "Callable async generators / context managers not yet implemented"
+            sub_result = await _resolve_yield_dependants(
+                sub_dep, values=sub_resolved.kwargs, stack=exit_stack
             )
         elif sub_dep.is_coroutine_callable:
             sub_result = await sub_dep.call(**sub_resolved.kwargs)
@@ -108,13 +117,26 @@ async def resolve_dependencies(
     return m.ResolvedDependant(kwargs=values, cache={})
 
 
-def resolve_builtin_dependants(
-    deps: list[m.BuiltinTypeDependant], *, builtins: Builtins
+async def _resolve_yield_dependants(
+    dep: m.Dependant,
+    *,
+    values: dict[str, Any],
+    stack: AsyncExitStack,
+) -> Any:
+    if dep.is_async_gen_callable:
+        cm = asynccontextmanager(dep.call)(**values)
+    elif dep.is_gen_callable:
+        cm = contextmanager_in_threadpool(contextmanager(dep.call)(**values))
+    return await stack.enter_async_context(cm)
+
+
+def _resolve_builtin_dependants(
+    deps: list[m.BuiltinTypeDependant], *, builtins: m.Builtins
 ) -> dict[str, Any]:
-    return {dep.name: resolve_builtin_dependant(dep, **builtins) for dep in deps}
+    return {dep.name: _resolve_builtin_dependant(dep, **builtins) for dep in deps}
 
 
-def resolve_builtin_dependant(
+def _resolve_builtin_dependant(
     dep: m.BuiltinTypeDependant,
     *,
     context: Context,
@@ -136,13 +158,13 @@ def resolve_builtin_dependant(
     )
 
 
-def resolve_input_models(
+def _resolve_input_models(
     deps: list[m.InputModelDependant], variables: dict[str, Any]
 ) -> dict[str, Any]:
-    return {dep.name: resolve_input_model(dep, variables) for dep in deps}
+    return {dep.name: _resolve_input_model(dep, variables) for dep in deps}
 
 
-def resolve_input_model(
+def _resolve_input_model(
     dep: m.InputModelDependant,
     variables: dict[str, Any],
 ) -> Any:
@@ -150,14 +172,14 @@ def resolve_input_model(
     return dep.adapter.validate_python(variables)
 
 
-def resolve_input_variables(
+def _resolve_input_variables(
     deps: list[m.InputVariableDependant],
     variables: dict[str, Any],
 ) -> dict[str, Any]:
-    return {dep.name: resolve_input_variable(dep, variables) for dep in deps}
+    return {dep.name: _resolve_input_variable(dep, variables) for dep in deps}
 
 
-def resolve_input_variable(
+def _resolve_input_variable(
     dep: m.InputVariableDependant,
     variables: dict[str, Any],
 ) -> Any:
