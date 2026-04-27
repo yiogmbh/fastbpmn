@@ -176,6 +176,7 @@ class ExternalTaskProcessor:
             "task": Task(**task_scope),
             "task_properties": task_properties,
             "process_instance": ProcessInstance(**scope.get("x_process_instance", {})),
+            "scope": scope,
         }
         dependant = build_dependant(handler, None)
 

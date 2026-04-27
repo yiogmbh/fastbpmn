@@ -5,6 +5,7 @@ from contextlib import AsyncExitStack, contextmanager
 from inspect import Parameter
 from typing import Callable, Any
 
+from aetpiref.typing import ExternalTaskScope
 from pydantic import BaseModel, TypeAdapter
 from typing_extensions import is_typeddict
 
@@ -46,7 +47,13 @@ def build_dependant(
             )
 
         # first we check for type hint indicating a builtin
-        if arg_class.annotation in (ProcessInstance, Task, Context, TaskProperties):
+        if arg_class.annotation in (
+            ProcessInstance,
+            Task,
+            Context,
+            TaskProperties,
+            ExternalTaskScope,
+        ):
             vals["builtins"].append(
                 m.BuiltinTypeDependant(name=arg_name, clazz=arg_class.annotation)
             )
@@ -151,6 +158,7 @@ def _resolve_builtin_dependant(
     task_properties: TaskProperties,
     task: Task,
     process_instance: ProcessInstance,
+    scope: ExternalTaskScope,
 ) -> Any:
     if dep.clazz == Context:
         return context
@@ -160,6 +168,8 @@ def _resolve_builtin_dependant(
         return process_instance
     if dep.clazz == TaskProperties:
         return task_properties
+    if dep.clazz == ExternalTaskScope:
+        return scope
 
     raise NotImplementedError(
         f"{dep.clazz} is not an implemented builtin (should not happen)."

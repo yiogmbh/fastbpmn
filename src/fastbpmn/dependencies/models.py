@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from functools import partial, cached_property
 from typing import Generic, TypeVar, Callable, Any, Self, ParamSpec
 
+from aetpiref.typing import ExternalTaskScope
 from typing_extensions import TypedDict
 from pydantic import TypeAdapter
 
@@ -23,6 +24,7 @@ class Builtins(TypedDict, total=True):
     task: Task
     process_instance: ProcessInstance
     task_properties: TaskProperties
+    scope: ExternalTaskScope
 
 
 def _unwrapped_call(call: Callable[..., Any] | None) -> Any:

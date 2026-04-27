@@ -3,6 +3,7 @@ from contextlib import AsyncExitStack
 from typing import Any, Generator, AsyncGenerator
 from unittest import mock
 
+from aetpiref.typing import ExternalTaskScope
 from typing_extensions import TypedDict
 
 import pytest
@@ -24,6 +25,7 @@ def mocked_builtins() -> Generator[Builtins, Any, None]:
         "task": mock.MagicMock(Task),
         "process_instance": mock.MagicMock(ProcessInstance),
         "task_properties": mock.MagicMock(TaskProperties),
+        "scope": mock.MagicMock(ExternalTaskScope),
     }
 
 
@@ -37,7 +39,8 @@ async def exit_stack() -> AsyncGenerator[AsyncExitStack[bool | None], None]:
 
 class TestBuildDependant:
     @pytest.mark.parametrize(
-        "builtin_type", [ProcessInstance, Task, TaskProperties, Context]
+        "builtin_type",
+        [ProcessInstance, Task, TaskProperties, Context, ExternalTaskScope],
     )
     def test_builtins_without_annotations(self, builtin_type):
         def call(proc: builtin_type) -> None:
@@ -170,6 +173,7 @@ class TestResolveDependencies:
             task: Task,
             props: TaskProperties,
             proc: ProcessInstance,
+            any_scope: ExternalTaskScope,
         ):
             pass
 
@@ -178,6 +182,7 @@ class TestResolveDependencies:
             "task": mocked_builtins["task"],
             "props": mocked_builtins["task_properties"],
             "proc": mocked_builtins["process_instance"],
+            "any_scope": mocked_builtins["scope"],
         }
 
         dependant = build_dependant(call)
