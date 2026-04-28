@@ -63,8 +63,8 @@ class TaskProperties(BaseModel):
         1000, title="Retry Timeout", description="Defines the timeout "
     )
 
-    input_class: Optional[type[InputOutputModel]] = None
-    output_class: Optional[type[InputOutputModel]] = None
+    input_class: type[InputOutputModel] | type[BaseModel] | None = None
+    output_class: type[InputOutputModel] | type[BaseModel] | None = None
 
     title: Optional[str] = None
     description: Optional[str] = None
