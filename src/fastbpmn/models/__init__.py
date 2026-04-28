@@ -8,6 +8,7 @@ from .base import (
     InputModel,
     OutputModel,
     get_file_info_indirect,
+    InputOutputModel,
 )
 from .decoder import camunda_loads
 from .encoder import camunda_dumps_variables
@@ -40,4 +41,5 @@ __all__ = [
     "encode",
     "FileInfo",
     "get_file_info_indirect",
+    "InputOutputModel",
 ]
