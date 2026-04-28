@@ -7,6 +7,7 @@ from .fastbpmn_types import LockDuration, TaskRetries, TaskTimeout
 from .models import (
     InputModel,
     OutputModel,
+    InputOutputModel,
 )
 
 __all__ = ["Task", "TaskProperties", "TaskHandler", "ExecuteTaskProperties"]
@@ -62,8 +63,8 @@ class TaskProperties(BaseModel):
         1000, title="Retry Timeout", description="Defines the timeout "
     )
 
-    input_class: Optional[type[InputModel]] = None
-    output_class: Optional[type[OutputModel]] = None
+    input_class: Optional[type[InputOutputModel]] = None
+    output_class: Optional[type[InputOutputModel]] = None
 
     title: Optional[str] = None
     description: Optional[str] = None
