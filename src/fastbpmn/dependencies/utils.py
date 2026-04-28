@@ -3,13 +3,14 @@ import functools
 import inspect
 from contextlib import AsyncExitStack, contextmanager
 from inspect import Parameter
-from typing import Callable, Any
+from typing import Callable, Any, Literal
 
 from aetpiref.typing import ExternalTaskScope
 from pydantic import BaseModel, TypeAdapter
 from typing_extensions import is_typeddict
 
 from fastbpmn.context import Context
+from fastbpmn.errors.process_engine import InputDataValidationError
 from fastbpmn.params import ProcessInstance, Task, Depends
 from fastbpmn.task import TaskProperties
 from fastbpmn.utils.concurrency import (
@@ -71,7 +72,9 @@ def build_dependant(
         # probably we get to point where only variable dependant remains
         else:
             vals["input_variables"].append(
-                as_input_variable_dependant(arg_name, arg_class)
+                as_input_variable_dependant(
+                    arg_name=arg_name, arg_alias=arg_name, arg_parameter=arg_class
+                )
             )
 
     return m.Dependant(name=name, call=call, **vals)
@@ -186,8 +189,12 @@ def _resolve_input_model(
     dep: m.InputModelDependant,
     variables: dict[str, Any],
 ) -> Any:
-    # TODO may be we need appropriate exceptions ..
-    return dep.adapter.validate_python(variables)
+    try:
+        return dep.adapter.validate_python(variables)
+    except ValueError as e:
+        raise InputDataValidationError(
+            str(e),
+        ) from e
 
 
 def _resolve_input_variables(
@@ -204,10 +211,22 @@ def _resolve_input_variable(
     if dep.alias not in variables and dep.has_default:
         return dep.default_value
 
-    if dep.alias in variables:
-        return variables[dep.alias]
-
-    raise NotImplementedError(f"{dep.name} / {dep.alias} not resolved")
+    try:
+        if dep.alias in variables:
+            val = dep.adapter.validate_python(
+                {
+                    dep.alias: variables[dep.alias],
+                }
+            )
+            return val.get(dep.alias)
+    except ValueError as e:
+        raise InputDataValidationError(str(e)) from e
+    else:
+        raise InputDataValidationError(f"""
+validation error for input variable:
+{dep.name}
+  Field required [type=missing, alias={dep.alias}]
+        """)
 
 
 def is_subdependency(
@@ -226,10 +245,10 @@ def is_async_callable(obj: Any) -> bool:
 
 
 def as_input_variable_dependant(
-    arg_name: str, arg_parameter: Parameter
+    arg_name: str, arg_alias: str, arg_parameter: Parameter
 ) -> m.InputVariableDependant:
 
-    adapter = TypeAdapter(arg_parameter.annotation)
+    adapter = TypeAdapter(dict[Literal[arg_alias], arg_parameter.annotation])
 
     has_default = arg_parameter.default is not inspect.Parameter.empty
     default_value = arg_parameter.default if has_default else None

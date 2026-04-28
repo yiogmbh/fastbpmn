@@ -13,6 +13,7 @@ from pydantic import BaseModel, TypeAdapter
 from fastbpmn.context import Context
 from fastbpmn.dependencies.models import Dependant, Builtins, ResolvedDependant
 from fastbpmn.dependencies.utils import build_dependant, resolve_dependencies
+from fastbpmn.errors.process_engine import InputDataValidationError
 from fastbpmn.params import ProcessInstance, Task, Depends
 from fastbpmn.task import TaskProperties
 
@@ -233,9 +234,73 @@ class TestResolveDependencies:
             resolved.kwargs["input_model"].model_dump(mode="python")
         ).contains_entry(**expected_vars)
 
-        # assert_that(resolved.kwargs).is_not_none().contains(
-        #    "greet", "var", "age"
-        # ).contains_entry(**expected_vars,)
+    @pytest.mark.asyncio
+    async def test_error_on_input_model_only(
+        self, mocked_builtins: Builtins, exit_stack: AsyncExitStack
+    ) -> None:
+        class TestModel(BaseModel):
+            var: uuid.UUID
+            greet: str
+            age: int = 15
+
+        def call(input_model: TestModel) -> None:
+            pass
+
+        dependant = build_dependant(call)
+
+        with pytest.raises(InputDataValidationError):
+            await resolve_dependencies(
+                dependant,
+                variables={},
+                builtins=mocked_builtins,
+                exit_stack=exit_stack,
+            )
+        pass
+
+    @pytest.mark.asyncio
+    async def test_variable_missing(
+        self, mocked_builtins: Builtins, exit_stack: AsyncExitStack
+    ) -> None:
+        def call(var: uuid.UUID, greet: str, age: int = 15) -> None:
+            pass
+
+        dependant = build_dependant(call)
+
+        passed_vars = {
+            "greet": "Hello World",
+        }
+
+        with pytest.raises(InputDataValidationError):
+            await resolve_dependencies(
+                dependant,
+                variables=passed_vars,
+                builtins=mocked_builtins,
+                exit_stack=exit_stack,
+            )
+        pass
+
+    @pytest.mark.asyncio
+    async def test_variable_invalid_type(
+        self, mocked_builtins: Builtins, exit_stack: AsyncExitStack
+    ) -> None:
+        def call(var: uuid.UUID, greet: str, age: int = 15) -> None:
+            pass
+
+        dependant = build_dependant(call)
+
+        passed_vars = {
+            "var": "not-a-uuid",
+            "greet": "Hello World",
+        }
+
+        with pytest.raises(InputDataValidationError):
+            await resolve_dependencies(
+                dependant,
+                variables=passed_vars,
+                builtins=mocked_builtins,
+                exit_stack=exit_stack,
+            )
+        pass
 
     @pytest.mark.asyncio
     async def test_variable_only(
