@@ -51,7 +51,7 @@ logger = structlog.get_logger(__name__)
 async def lifespan(app):
     logger.info("init your resources here")
     yield
-    logger.info("ensure to proper close them here")
+    logger.info("ensure to properly close them here")
 
 
 minion = FastBPMN(name="Bob", lifespan=lifespan)
@@ -154,3 +154,9 @@ uv run example.py
 ```
 
 Or set them in a `.env` file — fastbpmn picks them up automatically via `pydantic-settings`.
+
+
+!!! note "Required BPMN Attribute"
+
+    Camunda 7.24 may reject your BPMN process (`.bpmn` file) if the attribute `camunda:historyTimeToLive` is not included on the `<bpmn:process>` element.
+    If this happens, add the attribute and set it to a value such as `camunda:historyTimeToLive="P1D"`.
