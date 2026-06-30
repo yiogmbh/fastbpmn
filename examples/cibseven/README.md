@@ -1,10 +1,16 @@
 # fastbpmn - cibseven
 
-This example demonstrates how to use fastbpmn togehter with [cibseven](https://cibseven.org)
+This example demonstrates how to use fastbpmn together with [cibseven](https://cibseven.org)
 
 ## Prerequisites
 
 * docker installed
+
+
+## Running the Example
+
+See the [documentation](https://yiogmbh.github.io/fastbpmn/integrations/cibseven/) for
+step-by-step instructions on running this example with Docker Compose.
 
 ## Remarks
 

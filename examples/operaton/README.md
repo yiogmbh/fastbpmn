@@ -1,10 +1,16 @@
 # fastbpmn - operaton
 
-This example demonstrates how to use fastbpmn togehter with [operaton](https://operaton.org)
+This example demonstrates how to use fastbpmn together with [operaton](https://operaton.org)
 
 ## Prerequisites
 
 * docker installed
+
+
+## Running the Example
+
+See the [documentation](https://yiogmbh.github.io/fastbpmn/integrations/operaton/) for
+step-by-step instructions on running this example with Docker Compose.
 
 ## Remarks
 
