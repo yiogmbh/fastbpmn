@@ -37,7 +37,7 @@ logger = structlog.get_logger(__name__)
 async def lifespan(app):
     logger.info("init your resources here")
     yield
-    logger.info("ensure to proper close them here")
+    logger.info("ensure to properly close them here")
 
 
 minion = FastBPMN(
@@ -46,7 +46,6 @@ minion = FastBPMN(
 )
 
 class Greeting(BaseOutputModel):
-
     greeting: str
 
 
@@ -74,7 +73,6 @@ if __name__ == '__main__':
     squirrel.run(
         minion,
         flavour="camunda7",
-
         name="bob",
         workers=10,
         camunda_url="https://pe.yio.at/engine-rest/",
