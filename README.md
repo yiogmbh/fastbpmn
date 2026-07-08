@@ -26,7 +26,7 @@ class OracleInput(BaseInputModel):
 
 
 class OracleOutput(BaseOutputModel):
-    win_or_loose: bool  # Sets the process variable win_or_loose in the end
+    win_or_lose: bool  # Sets the process variable win_or_lose in the end
 
 
 @app.external_task(
@@ -42,9 +42,9 @@ async def ask_oracle_delphi(input_data: OracleInput):
     """
     dummy_number = input_data.integer_variable + len(input_data.string_variable)
 
-    win_or_loose = bool(dummy_number % 2)
+    win_or_lose = bool(dummy_number % 2)
 
-    return OracleOutput(win_or_loose=win_or_loose)
+    return OracleOutput(win_or_lose=win_or_lose)
 
 
 @app.external_task(
@@ -60,9 +60,9 @@ async def ask_oracle_dodona(input_data: OracleInput):
     """
     dummy_number = input_data.integer_variable + len(input_data.string_variable)
 
-    win_or_loose = not bool(dummy_number % 2)
+    win_or_lose = not bool(dummy_number % 2)
 
-    return OracleOutput(win_or_loose=win_or_loose)
+    return OracleOutput(win_or_lose=win_or_lose)
 
 
 # start the fastbpmn application using the included squirrel
@@ -76,7 +76,6 @@ if __name__ == '__main__':
     squirrel.run(
         app,
         flavour="camunda7",
-
         name="bob",
         workers=10,
         camunda_url="<your pe url>",
@@ -86,6 +85,8 @@ if __name__ == '__main__':
 ```
 
 #### Lifespan Handler
+
+You can hook into the worker's startup and shutdown lifecycle to set up or tear down shared resources.
 
 ```python
 from fastbpmn import FastBPMN
@@ -104,9 +105,16 @@ app = FastBPMN(
 )
 ```
 
+Code before `yield` runs once when the worker starts up, and code after `yield` runs once when
+the worker shuts down. This is practical for loading and shutting down resources shared across all
+your external tasks.
+
+
+
+
 #### Retries
 
-In order to handle errors with retries there is a special exception that should be
+In order to handle errors with retries, there is a special exception that should be
 raised within your external tasks. The latter example shows the usage:
 
 ```python
@@ -142,9 +150,24 @@ async def retry_infinite(input_data: None) -> None:
     # exception leads to decrease of initial number
 ```
 
+Raising `RetryExternalTask` inside an external task signals the process
+engine to retry the task rather than mark it as failed. By default, a task will retry 3 times.
+
+There are two ways to control the retry count:
+
+- Pass `retries=` in the exception itself (e.g. `RetryExternalTask(retries=1)`) to set an
+  absolute number of remaining retries, regardless of what the decorator specifies.
+- Omit the argument (e.g. `RetryExternalTask()`) to let fastbpmn decrement the retry count
+  that was set via `retries=` on the `@external_task` decorator.
+
+
+This could be useful when your task depends on an external system that may be temporarily
+unavailable, for instance.
+
+
 #### No Input Values
 
-It's possible to omit all the arguments if your external-task won't depend on input data.
+It's possible to omit all the arguments if your external task won't depend on input data.
 
 ```python
 from fastbpmn import FastBPMN
@@ -163,12 +186,16 @@ async def no_args() -> None:
     return
 ```
 
+Arguments are not required when tasks do not depend on process variables, e.g., a fixed cleanup step
+or a notification that doesn't vary by process instance.
+
+
 #### Task/TaskProperties
 
 Sometimes you might be interested in properties of the current Task or the TaskProperties in general.
-You can declare an external task such that you will receive this objects for usage:
+You can declare an external task such that you will receive these objects for usage:
 
-> **Attention** This is highly experimental and due to upcoming refactorings of the process engine interface the
+> **Attention** This is highly experimental and due to upcoming refactorings of the process engine interface, the
 > Task and TaskProperties Class are likely to change in the future.
 
 ```python
@@ -190,6 +217,10 @@ async def print_taskinfo(input_data: None, task: Task, task_properties: TaskProp
     print(f"TaskId: {task.id} - initial retries: {task_properties.retries}")
     return
 ```
+
+Declaring `task: Task` and `task_properties: TaskProperties` as parameters on an external task causes
+fastbpmn to inject the current task's runtime data (such as its ID) and its configured properties
+(such as the initial retry count).
 
 #### Process
 
@@ -238,14 +269,16 @@ async def print_common(input_data: None, task: Task, task_properties: TaskProper
 # >-> The Topic can be different as well..
 process_b.add_task("print_common", handler=print_common)
 process_a.add_task("print_common", handler=print_common)
-
-
 ```
+
+Tasks registered on a `Process` only fire for that specific process definition, even if the topic name is reused elsewhere.
+The `add_task()` method lets you attach an existing handler function to a process without repeating the decorator — useful
+for shared logic that multiple processes need to call under potentially different topic names.
 
 #### Context
 
 You can make use of a context within your external task. The context provides some useful features
-(e.g. create of temporary files / directories).
+(e.g. create temporary files / directories).
 
 ```python
 from fastbpmn import FastBPMN, Process
@@ -274,6 +307,13 @@ async def print_b(ctx: Context) -> None:
     file_path = ctx.temp_file(flags=Delete.ALWAYS)
     return
 ```
+
+Specifying `ctx: Context` as a parameter causes fastbpmn to inject a context object
+scoped to the current task execution. The feature shown here is `ctx.temp_file()`,
+which creates a temporary file whose lifecycle is controlled by the `Delete` flag:
+
+- `Delete.NEVER` — the file persists after the task finishes (useful if a downstream step needs to access it).
+- `Delete.ALWAYS` — the file is deleted automatically when the task completes, keeping the worker's filesystem clean.
 
 #### File Handling
 
@@ -440,7 +480,6 @@ async def option3(ctx: Context, input_data: Option3InputModel) -> None:
     # ... do something with the files ... (the caveat is that you need to know the order and meaning of the files)
     # but there might be use cases where this won't matter).
     return
-
 ```
 
 
@@ -448,7 +487,7 @@ async def option3(ctx: Context, input_data: Option3InputModel) -> None:
 ## Development
 
 ```shell
-# setup evn ...
+# setup env ...
 uv sync
 
 # install commit hooks

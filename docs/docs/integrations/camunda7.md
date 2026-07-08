@@ -1,6 +1,6 @@
 # Camunda 7
 
-[Camunda 7](https://docs.camunda.org/manual/7.24/) is the process engine fastbpmn is natively build for and compatible with.
+[Camunda 7](https://docs.camunda.org/manual/7.24/) is the process engine fastbpmn is natively built for and compatible with.
 
 This guide walks you through a [self-contained example](https://github.com/yiogmbh/fastbpmn/tree/main/examples/camunda7/)
 that:
@@ -50,7 +50,7 @@ logger = structlog.get_logger(__name__)
 async def lifespan(app):
     logger.info("init your resources here")
     yield
-    logger.info("ensure to proper close them here")
+    logger.info("ensure to properly close them here")
 
 
 minion = FastBPMN(name="Bob", lifespan=lifespan)
@@ -153,3 +153,9 @@ uv run example.py
 ```
 
 Or set them in a `.env` file — fastbpmn picks them up automatically via `pydantic-settings`.
+
+
+!!! note "Required BPMN Attribute"
+
+    Camunda 7.24 may reject your BPMN process (`.bpmn` file) if the attribute `camunda:historyTimeToLive` is not included on the `<bpmn:process>` element.
+    If this happens, add the attribute and set it to a value such as `camunda:historyTimeToLive="P1D"`.

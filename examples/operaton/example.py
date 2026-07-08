@@ -19,7 +19,7 @@ logger = structlog.get_logger(__name__)
 async def lifespan(app):
     logger.info("init your resources here")
     yield
-    logger.info("ensure to proper close them here")
+    logger.info("ensure to properly close them here")
 
 
 minion = FastBPMN(name="Bob", lifespan=lifespan)
@@ -59,8 +59,8 @@ def shoutout(value: GreetInput):
 if __name__ == "__main__":
     from structlog_config import configure_logger
 
-    log = configure_logger()
-
+    # log = configure_logger()
+    configure_logger()
     # structlog.stdlib.recreate_defaults(log_level=logging.INFO)
 
     squirrel.run(

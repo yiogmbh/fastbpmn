@@ -1,10 +1,17 @@
 # fastbpmn - camunda7
 
-This example demonstrates how to use fastbpmn togehter with [camunda7](https://docs.camunda.org/manual/7.24/)
+This example demonstrates how to use fastbpmn together with [camunda7](https://docs.camunda.org/manual/7.24/)
 
 ## Prerequisites
 
 * docker installed
+
+
+## Running the Example
+
+See the [documentation](https://yiogmbh.github.io/fastbpmn/integrations/camunda7/) for
+step-by-step instructions on running this example with Docker Compose.
+
 
 ## Remarks
 
