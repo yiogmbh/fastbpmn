@@ -483,6 +483,10 @@ async def option3(ctx: Context, input_data: Option3InputModel) -> None:
 ```
 
 
+## Documentation
+
+Documentation of the project is built on top of [zensical](https://zensical.org) (supersedes mkdocs).
+
 
 ## Development
 
@@ -492,4 +496,14 @@ uv sync
 
 # install commit hooks
 prek install
+
+# serve documentation locally
+uv run --directory docs zensical serve
 ```
+
+###
+
+```shell
+#
+```
+To start a local
