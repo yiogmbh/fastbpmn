@@ -48,11 +48,12 @@ nav = [
     { "Get started" = "index.md" },
     { "Roadmap" = "roadmap.md"},
     { "Changelog" = "changelog.md"},
-    { "Usage" = [
-        "usage/context.md",
-        "usage/dependencies.md"
+    { "Features" = [
+        "features/builtins.md",
+        "features/dependencies.md"
     ]},
     { "Integrations" = [
+        "integrations/index.md",
         "integrations/camunda7.md",
         "integrations/operaton.md",
         "integrations/cibseven.md"
