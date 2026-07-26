@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🚀 Features
 
 - Document builtins (#15)
+- *(context)* Support emitting messages and signals (#17)
 
 ### 📚 Documentation
 
