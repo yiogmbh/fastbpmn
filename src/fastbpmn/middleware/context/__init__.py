@@ -11,11 +11,12 @@ from aetpiref.typing import (
     AETPISendEvent,
     ExternalTaskEmitSignalEvent,
     ExternalTaskCorrelateMessageEvent,
+    ExternalTaskVariableFetchEvent,
 )
 from pydantic import TypeAdapter
 
 from fastbpmn.context import Context
-from fastbpmn.context.exceptions import UnexpectedEventReceived
+from fastbpmn.context.exceptions import UnexpectedEventReceived, VariableFetchError
 from fastbpmn.context.models import (
     Signal,
     SignalResult,
@@ -149,10 +150,41 @@ class ContextMiddleware:
                 case _:
                     raise UnexpectedEventReceived()
 
-        file_downloader = scope["x_download_file_var"]
+        @lock
+        async def variable_fetcher(variable_name: str, file_path: str) -> None:
+            transaction = str(uuid4())
+            send_event: ExternalTaskVariableFetchEvent = {
+                "type": "externaltask.variable.fetch",
+                "transaction": transaction,
+                "variable_name": variable_name,
+                "file_path": file_path,
+            }
+            await send(send_event)
+
+            while (
+                element := await receive_or_queue(
+                    "externaltask.variable.fetch.", transaction
+                )
+            ) is None:
+                pass
+
+            match element:
+                case {"type": "externaltask.variable.fetch.completed"}:
+                    return
+                case {
+                    "type": "externaltask.variable.fetch.failed",
+                    "error_message": str(error_message),
+                }:
+                    raise VariableFetchError(
+                        error_message,
+                        variable_name=variable_name,
+                        file_path=file_path,
+                    )
+                case _:
+                    raise UnexpectedEventReceived()
 
         async with Context(
-            file_downloader,
+            variable_fetcher=variable_fetcher,
             message_correlator=message_correlator,
             signal_emitter=signal_emitter,
         ) as context:

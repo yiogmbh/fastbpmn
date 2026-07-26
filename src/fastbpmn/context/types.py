@@ -11,3 +11,8 @@ class SignalEmitter(Protocol):
 class MessageCorrelator(Protocol):
     async def __call__(self, message: Message) -> MessageResult | MessageFailure:
         pass
+
+
+class VariableFetcher(Protocol):
+    async def __call__(self, variable_name: str, file_path: str) -> None:
+        pass

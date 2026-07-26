@@ -10,6 +10,7 @@ from fastbpmn.context.exceptions import (
     MessageCorrelateError,
     SignalFailureError,
     UnexpectedEventReceived,
+    VariableFetchError,
 )
 from fastbpmn.context.models import Message, MessageResult, Signal
 from fastbpmn.middleware.context import ContextMiddleware
@@ -55,7 +56,6 @@ DEFAULT_SCOPE = {
         "title": None,
         "description": None,
     },
-    "x_download_file_var": AsyncMock(),
 }
 
 
@@ -406,3 +406,137 @@ async def test_message_result_validated_via_pydantic():
     assert r.process_instance.id == "pi-1"
     assert r.process_instance.definition_id == "d-1"
     assert r.process_instance.business_key == "bk-1"
+
+
+@pytest.mark.asyncio
+async def test_variable_fetch_success():
+    scope = dict(DEFAULT_SCOPE)
+    receive_queue: Queue = Queue()
+    await receive_queue.put(
+        {
+            "type": "externaltask.variable.fetch.completed",
+            "transaction": "fixed-txn",
+        }
+    )
+    send = AsyncMock()
+
+    async def receive():
+        return await receive_queue.get()
+
+    async def inner_app(scope, receive, send):
+        context = scope["context"]
+        await context._variable_fetcher(
+            variable_name="test-file", file_path="/tmp/test.txt"
+        )
+
+    middleware = ContextMiddleware(inner_app)
+
+    with mock.patch("fastbpmn.middleware.context.uuid4", return_value="fixed-txn"):
+        await middleware(scope, receive, send)
+
+    send.assert_any_call(
+        {
+            "type": "externaltask.variable.fetch",
+            "transaction": "fixed-txn",
+            "variable_name": "test-file",
+            "file_path": "/tmp/test.txt",
+        }
+    )
+
+
+@pytest.mark.asyncio
+async def test_variable_fetch_error():
+    scope = dict(DEFAULT_SCOPE)
+    receive_queue: Queue = Queue()
+    await receive_queue.put(
+        {
+            "type": "externaltask.variable.fetch.failed",
+            "transaction": "fixed-txn",
+            "error_message": "file not found",
+        }
+    )
+    send = AsyncMock()
+
+    async def receive():
+        return await receive_queue.get()
+
+    async def inner_app(scope, receive, send):
+        context = scope["context"]
+        with pytest.raises(VariableFetchError, match="file not found"):
+            await context._variable_fetcher(
+                variable_name="test-file", file_path="/tmp/test.txt"
+            )
+
+    middleware = ContextMiddleware(inner_app)
+
+    with mock.patch("fastbpmn.middleware.context.uuid4", return_value="fixed-txn"):
+        await middleware(scope, receive, send)
+
+
+@pytest.mark.asyncio
+async def test_variable_fetch_unexpected_event():
+    scope = dict(DEFAULT_SCOPE)
+    receive_queue: Queue = Queue()
+    await receive_queue.put(
+        {
+            "type": "externaltask.variable.fetch.unknown",
+            "transaction": "fixed-txn",
+        }
+    )
+    send = AsyncMock()
+
+    async def receive():
+        return await receive_queue.get()
+
+    async def inner_app(scope, receive, send):
+        context = scope["context"]
+        with pytest.raises(UnexpectedEventReceived):
+            await context._variable_fetcher(
+                variable_name="test-file", file_path="/tmp/test.txt"
+            )
+
+    middleware = ContextMiddleware(inner_app)
+
+    with mock.patch("fastbpmn.middleware.context.uuid4", return_value="fixed-txn"):
+        await middleware(scope, receive, send)
+
+
+@pytest.mark.asyncio
+async def test_unrelated_events_queued_during_variable_fetch():
+    scope = dict(DEFAULT_SCOPE)
+    receive_queue: Queue = Queue()
+    await receive_queue.put(
+        {
+            "type": "some.unrelated.event",
+            "transaction": "other-txn",
+        }
+    )
+    await receive_queue.put(
+        {
+            "type": "externaltask.variable.fetch.completed",
+            "transaction": "fixed-txn",
+        }
+    )
+    send = AsyncMock()
+    post_fetch_events = []
+
+    async def receive():
+        return await receive_queue.get()
+
+    async def inner_app(scope, receive, send):
+        context = scope["context"]
+        await context._variable_fetcher(
+            variable_name="test-file", file_path="/tmp/test.txt"
+        )
+
+        queued_event = await receive()
+        post_fetch_events.append(queued_event)
+
+    middleware = ContextMiddleware(inner_app)
+
+    with mock.patch("fastbpmn.middleware.context.uuid4", return_value="fixed-txn"):
+        await middleware(scope, receive, send)
+
+    assert post_fetch_events == [
+        {"type": "some.unrelated.event", "transaction": "other-txn"},
+    ]

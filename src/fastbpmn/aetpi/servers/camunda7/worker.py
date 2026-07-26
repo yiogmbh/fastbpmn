@@ -4,6 +4,8 @@ from functools import reduce
 from typing import TYPE_CHECKING, Any
 
 import structlog
+from pathlib import Path
+
 from aetpiref.typing import (
     AETPIApplication,
     AETPIReceiveEvent,
@@ -29,6 +31,9 @@ from aetpiref.typing import (
     ExternalTaskCorrelateMessageEvent,
     ExternalTaskMessageDeliveredEvent,
     ExternalTaskMessageFailureEvent,
+    ExternalTaskVariableFetchEvent,
+    ExternalTaskVariableFetchCompletedEvent,
+    ExternalTaskVariableFetchFailedEvent,
 )
 from structlog.contextvars import bound_contextvars
 
@@ -414,6 +419,31 @@ class Camunda7ServerWorker:
         """
         return utils.create_event_end()
 
+    async def _handle_variable_fetch(
+        self,
+        scope: TaskScope,
+        event: ExternalTaskVariableFetchEvent,
+    ) -> ExternalTaskVariableFetchCompletedEvent | ExternalTaskVariableFetchFailedEvent:
+        variable_name = event.get("variable_name")
+        file_path = event.get("file_path")
+
+        try:
+            success, contents = await self.process_engine.external_task_file_variable(
+                process_instance_id=scope["process_instance_id"],
+                variable_name=variable_name,
+            )
+            if not success or contents is None:
+                return utils.create_variable_fetch_failed_event(
+                    event.get("transaction"),
+                    f"Variable '{variable_name}' not found",
+                )
+            Path(file_path).write_bytes(contents)
+            return utils.create_variable_fetch_completed_event(event.get("transaction"))
+        except Exception as e:
+            return utils.create_variable_fetch_failed_event(
+                event.get("transaction"), str(e)
+            )
+
     async def handle_event(
         self,
         send_queue: Queue[AETPIReceiveEvent],
@@ -473,6 +503,8 @@ class Camunda7ServerWorker:
                     answer = await self._handle_signal_emit(task_scope, event)
                 case {"type": "externaltask.message.correlate"}, {}:
                     answer = await self._handle_message_correlate(task_scope, event)
+                case {"type": "externaltask.variable.fetch"}, {}:
+                    answer = await self._handle_variable_fetch(task_scope, event)
                 case _:
                     logger.warning(
                         "event unexpected while processing, remains unhandled"
@@ -527,15 +559,6 @@ class Camunda7ServerWorker:
             # mark_as_processed()
 
             prev_event = event
-
-        async def download_file_var(var_name: str) -> bytes:
-            return await self._task_file_variable(task_scope, var_name)
-
-        async def upload_file_var(var_name: str) -> bytes:
-            raise NotImplementedError
-
-        scope["x_download_file_var"] = download_file_var
-        scope["x_upload_file_var"] = upload_file_var
 
         scope[
             "x_process_instance"

@@ -33,3 +33,13 @@ class MessageCorrelateError(ContextError):
     def __init__(self, *args, message: Message):
         super().__init__(*args)
         self.message = message
+
+
+class VariableFetchError(ContextError):
+    variable_name: str
+    file_path: str
+
+    def __init__(self, *args, variable_name: str, file_path: str):
+        super().__init__(*args)
+        self.variable_name = variable_name
+        self.file_path = file_path

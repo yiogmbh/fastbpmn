@@ -66,3 +66,13 @@ class MessageResult:
 @dataclass(frozen=True)
 class MessageFailure:
     error_message: str
+
+
+@dataclass(frozen=True)
+class VariableFetchResult:
+    pass
+
+
+@dataclass(frozen=True)
+class VariableFetchFailure:
+    error_message: str
