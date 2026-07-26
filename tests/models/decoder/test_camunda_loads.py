@@ -91,6 +91,17 @@ def mocked_sync_callback():
             id="json variable",
         ),
         pytest.param(
+            {
+                "bytes_variable": {
+                    "value": "SGVsbG8gV29ybGQ=",
+                    "type": "Bytes",
+                    "valueInfo": {},
+                }
+            },
+            {"bytes_variable": b"Hello World"},
+            id="bytes variable",
+        ),
+        pytest.param(
             {"file_variable": {"value": None, "type": "File"}},
             {
                 "file_variable": FileInfo(

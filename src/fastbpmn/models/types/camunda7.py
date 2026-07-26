@@ -1,3 +1,4 @@
+import base64
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, Callable, Literal, Union
 
@@ -18,6 +19,7 @@ StringTypeLiteral = Literal["string", "String"]
 JsonTypeLiteral = Literal["json", "Json"]
 NullTypeLiteral = Literal["null", "Null"]
 FileTypeLiteral = Literal["file", "File"]
+BytesTypeLiteral = Literal["bytes", "Bytes"]
 
 
 def to_sync_callback(
@@ -39,7 +41,7 @@ def to_sync_callback(
     return sync_callback
 
 
-DecodedPythonTypes = Union[bool, int, float, str, None, Json, FileInfo]
+DecodedPythonTypes = Union[bool, int, float, str, bytes, None, Json, FileInfo]
 
 
 class Camunda7Primitive(BaseModel):
@@ -158,6 +160,21 @@ class Camunda7FileInfo(Camunda7Primitive):
         return {**value, "variable_name": variable_name, "sync_download": sync_download}
 
 
+class Camunda7Bytes(Camunda7Primitive):
+    """
+    Handling for bytes values
+    """
+
+    name: str
+    value_type: BytesTypeLiteral = Field(..., alias="type")
+    value: bytes
+
+    @field_validator("value", mode="before")
+    @classmethod
+    def decode_base64(cls, value: str) -> bytes:
+        return base64.b64decode(value)
+
+
 # Annotated Union to parse single camunda7 variables
 # easily
 Camunda7VariableType = Union[
@@ -170,6 +187,7 @@ Camunda7VariableType = Union[
     Camunda7Json,
     Camunda7Null,
     Camunda7FileInfo,
+    Camunda7Bytes,
 ]
 AnnotatedCamunda7VariableType = Annotated[
     Union[
@@ -182,6 +200,7 @@ AnnotatedCamunda7VariableType = Annotated[
         Camunda7Json,
         Camunda7Null,
         Camunda7FileInfo,
+        Camunda7Bytes,
     ],
     Field(discriminator="value_type"),
 ]
@@ -206,7 +225,7 @@ Camunda7VariablesAdapter = TypeAdapter(Camunda7Variables)
 
 # Conversion layer to more python friendly types
 # for camunda7 variables
-DecodedVariableTypes = Union[bool, int, float, str, dict, None, FileInfo]
+DecodedVariableTypes = Union[bool, int, float, str, bytes, dict, None, FileInfo]
 
 
 def primitive_validator(

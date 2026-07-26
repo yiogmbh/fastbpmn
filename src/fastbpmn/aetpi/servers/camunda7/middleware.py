@@ -40,6 +40,8 @@ class Camunda7VariablePreprocessor(BaseSyncVariableHandlerMiddleware):
 
         for key, value in variables.items():
             match value:
+                case bytes():
+                    continue
                 case Path():
                     # TODO: Add file handling
                     # We won't do anything with the Path object
