@@ -82,6 +82,15 @@ class BaseSyncVariableHandlerMiddleware:
         async def send_wrapper(event: AETPISendEvent) -> None:
 
             match event:
+                case {
+                    "type": "externaltask.execute.complete",
+                    "variables": variables,
+                    "local_variables": local_variables,
+                }:
+                    variables = self.process_server_variables(variables)
+                    local_variables = self.process_server_variables(local_variables)
+                    event["variables"] = variables
+                    event["local_variables"] = local_variables
                 case {"type": "externaltask.execute.complete", "variables": variables}:
                     variables = self.process_server_variables(variables)
                     event["variables"] = variables

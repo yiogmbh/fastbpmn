@@ -120,14 +120,17 @@ def create_event_execute_start(
 
 def create_event_execute_complete(
     variables: dict[str, types.Any] | None = None,
+    local_variables: dict[str, types.Any] | None = None,
 ) -> types.ExternalTaskExecuteCompleteEvent:
     """
     Create an event to complete the execute request.
     """
-    return {
+    result: types.ExternalTaskExecuteCompleteEvent = {
         "type": "externaltask.execute.complete",
         "variables": variables,
+        "local_variables": local_variables,
     }
+    return result
 
 
 def create_event_execute_abort() -> types.ExternalTaskExecuteAbortEvent:

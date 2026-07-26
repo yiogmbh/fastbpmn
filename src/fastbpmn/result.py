@@ -34,8 +34,10 @@ class SuccessResult(ExternalTaskResult):
     def __init__(
         self,
         variables: dict[str, Any] | OutputModel | None = None,
+        local_variables: dict[str, Any] | OutputModel | None = None,
     ) -> None:
         self.variables = variables
+        self.local_variables = local_variables
 
     async def __call__(
         self,
@@ -44,7 +46,12 @@ class SuccessResult(ExternalTaskResult):
         send: AETPISendCallable,
     ) -> None:
         variables = default_encoder(self.variables)
-        await send(eu.create_event_execute_complete(variables=variables))
+        local_variables = default_encoder(self.local_variables)
+        await send(
+            eu.create_event_execute_complete(
+                variables=variables, local_variables=local_variables
+            )
+        )
 
 
 class AbortResult(ExternalTaskResult):
