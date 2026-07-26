@@ -55,6 +55,17 @@ def to_file(value: Path) -> CamundaTypeDict:
     return {"value": as_base64(value), "type": "File", "valueInfo": value_info}
 
 
+def to_bytes(value: bytes) -> CamundaTypeDict:
+    """
+    Converts the given value to a bytes
+    """
+    return {
+        "value": base64.b64encode(value).decode("utf-8"),
+        "type": "Bytes",
+        "valueInfo": {},
+    }
+
+
 def to_null(value: None = None) -> CamundaTypeDict:
     """
     Converts the given value to a string
@@ -114,6 +125,8 @@ def encode_variable(value: Any) -> dict[str, Any]:
             return to_string(value)
         case dict() | list() | tuple() | set():
             return to_json(value)
+        case bytes():
+            return to_bytes(value)
         case Path():
             return to_file(value)
 

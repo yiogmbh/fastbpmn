@@ -69,6 +69,8 @@ def camunda_dumps_variables(variables: Dict[str, Any]):  # noqa: ignore=C901
             variables[key] = camunda_encode_str(str(value))
         elif isinstance(value, int):
             variables[key] = camunda_encode_long(value)
+        elif isinstance(value, bytes):
+            variables[key] = camunda_encode_bytes(value)
         elif isinstance(value, str):
             variables[key] = camunda_encode_str(value)
         elif isinstance(value, uuid.UUID):
@@ -130,6 +132,14 @@ def camunda_encode_number(value: Union[float, Decimal]) -> dict:
 
 def camunda_encode_bool(value: bool) -> dict:
     return camunda_encode_primitive(value, "Boolean")
+
+
+def camunda_encode_bytes(value: bytes) -> dict:
+    return {
+        "value": base64.b64encode(value).decode("utf-8"),
+        "type": "Bytes",
+        "valueInfo": {},
+    }
 
 
 def camunda_encode_date(value: date) -> dict:
