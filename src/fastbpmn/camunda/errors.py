@@ -1,3 +1,6 @@
+from httpx import HTTPStatusError
+
+
 class Error(Exception):
     """Base Error Class.
 
@@ -108,3 +111,13 @@ class OptimisticLockError(RetryableError):
 
 class DeadlockSituationOccurredError(RetryableError):
     pass
+
+
+class CorrelateMessageError(Error):
+    @staticmethod
+    def of_http_status_error(exc: HTTPStatusError) -> "CorrelateMessageError":
+
+        body = exc.response.json()
+        message = body.get("message", "Unknown Error")
+
+        return CorrelateMessageError(message=message, hint=body.get("hint", None))

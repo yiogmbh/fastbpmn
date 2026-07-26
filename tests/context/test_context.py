@@ -6,7 +6,15 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from fastbpmn.context.context import Context
+from fastbpmn.context.exceptions import MessageCorrelateError, SignalFailureError
 from fastbpmn.context.io import Delete, TempPath
+from fastbpmn.context.models import (
+    Message,
+    MessageFailure,
+    MessageResult,
+    Signal,
+    SignalResult,
+)
 from fastbpmn.models import FileInfo
 from fastbpmn.task import Task
 
@@ -20,7 +28,11 @@ class UnitTestError(Exception):
 @mock.patch("fastbpmn.context.context.delete_all")
 @pytest.mark.asyncio
 async def test_context_manager_no_op(patched_delete_all):
-    async with Context(file_downloader=MagicMock()):
+    async with Context(
+        file_downloader=MagicMock(),
+        message_correlator=AsyncMock(),
+        signal_emitter=AsyncMock(),
+    ):
         pass
 
     patched_delete_all.assert_awaited_once_with(temp_paths=[], error=False)
@@ -55,7 +67,11 @@ async def test_context_manager_with_dirs_and_files(
     patched_create_temp_file.return_value = temp_file
 
     with expectation:
-        async with Context(file_downloader=MagicMock()) as ctx:
+        async with Context(
+            file_downloader=MagicMock(),
+            message_correlator=AsyncMock(),
+            signal_emitter=AsyncMock(),
+        ) as ctx:
             ctx.temp_dir()
             ctx.temp_file(suffix=".suffix")
             ctx.temp_file_in_dir("myfile.txt")
@@ -96,7 +112,11 @@ async def test_download_file_with_name(
     mocked_file_downloader = AsyncMock()
     mocked_file_downloader.return_value = mocked_contents1
 
-    async with Context(mocked_file_downloader) as ctx:
+    async with Context(
+        mocked_file_downloader,
+        message_correlator=AsyncMock(),
+        signal_emitter=AsyncMock(),
+    ) as ctx:
         assert mocked_target_path1 == await ctx.download_file(file_info1)
 
     # Assert
@@ -127,7 +147,11 @@ async def test_download_file_without_name(
     mocked_file_downloader = AsyncMock()
     mocked_file_downloader.return_value = mocked_contents2
 
-    async with Context(mocked_file_downloader) as ctx:
+    async with Context(
+        mocked_file_downloader,
+        message_correlator=AsyncMock(),
+        signal_emitter=AsyncMock(),
+    ) as ctx:
         assert mocked_target_path2 == await ctx.download_file(file_info2)
 
     # Assert
@@ -135,3 +159,76 @@ async def test_download_file_without_name(
     mocked_target_path2.write_bytes.assert_called_once_with(mocked_contents2)
     mocked_temp_file_in_dir.assert_not_called()
     mocked_temp_file.assert_called_once_with(Delete.ALWAYS)
+
+
+@mock.patch("fastbpmn.context.context.delete_all")
+@pytest.mark.asyncio
+async def test_emit_signal_success(patched_delete_all):
+    signal_emitter = AsyncMock()
+    signal_emitter.return_value = SignalResult(success=True)
+
+    async with Context(
+        file_downloader=MagicMock(),
+        message_correlator=AsyncMock(),
+        signal_emitter=signal_emitter,
+    ) as ctx:
+        result = await ctx.emit_signal(Signal(signal_name="test-signal"))
+
+    assert result is None
+    signal_emitter.assert_awaited_once()
+    patched_delete_all.assert_awaited_once()
+
+
+@mock.patch("fastbpmn.context.context.delete_all")
+@pytest.mark.asyncio
+async def test_emit_signal_failure(patched_delete_all):
+    signal_emitter = AsyncMock()
+    signal_emitter.return_value = SignalResult(success=False, error_message="fail")
+
+    async with Context(
+        file_downloader=MagicMock(),
+        message_correlator=AsyncMock(),
+        signal_emitter=signal_emitter,
+    ) as ctx:
+        with pytest.raises(SignalFailureError, match="fail"):
+            await ctx.emit_signal(Signal(signal_name="test-signal"))
+
+    signal_emitter.assert_awaited_once()
+    patched_delete_all.assert_awaited_once()
+
+
+@mock.patch("fastbpmn.context.context.delete_all")
+@pytest.mark.asyncio
+async def test_correlate_message_success(patched_delete_all):
+    message_correlator = AsyncMock()
+    expected_result = MessageResult(recipients=[])
+    message_correlator.return_value = expected_result
+
+    async with Context(
+        file_downloader=MagicMock(),
+        message_correlator=message_correlator,
+        signal_emitter=AsyncMock(),
+    ) as ctx:
+        result = await ctx.correlate_message(Message(message_name="test-message"))
+
+    assert result == expected_result
+    message_correlator.assert_awaited_once()
+    patched_delete_all.assert_awaited_once()
+
+
+@mock.patch("fastbpmn.context.context.delete_all")
+@pytest.mark.asyncio
+async def test_correlate_message_failure(patched_delete_all):
+    message_correlator = AsyncMock()
+    message_correlator.return_value = MessageFailure(error_message="nope")
+
+    async with Context(
+        file_downloader=MagicMock(),
+        message_correlator=message_correlator,
+        signal_emitter=AsyncMock(),
+    ) as ctx:
+        with pytest.raises(MessageCorrelateError, match="nope"):
+            await ctx.correlate_message(Message(message_name="test-message"))
+
+    message_correlator.assert_awaited_once()
+    patched_delete_all.assert_awaited_once()

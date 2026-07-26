@@ -2,8 +2,12 @@ from asyncio import shield
 from pathlib import Path
 from typing import TYPE_CHECKING, Awaitable, Callable
 
-from fastbpmn.context.io import Delete
-from fastbpmn.context.utils import create_temp_dir, create_temp_file, delete_all
+from .exceptions import SignalFailureError, MessageCorrelateError
+from .models import Signal, Message, MessageResult, MessageFailure
+
+from .io import Delete
+from .utils import create_temp_dir, create_temp_file, delete_all
+from .types import MessageCorrelator, SignalEmitter
 
 if TYPE_CHECKING:
     from fastbpmn.models.base import FileInfo
@@ -24,11 +28,20 @@ class Context:
     __slots__ = [
         "temp_paths",
         "_file_downloader",
+        "_message_correlator",
+        "_signal_emitter",
     ]
 
-    def __init__(self, file_downloader: FileDownloader):
+    def __init__(
+        self,
+        file_downloader: FileDownloader,
+        message_correlator: MessageCorrelator,
+        signal_emitter: SignalEmitter,
+    ):
         self.temp_paths = []
         self._file_downloader = file_downloader
+        self._message_correlator = message_correlator
+        self._signal_emitter = signal_emitter
 
     async def __aenter__(self):
         """
@@ -97,3 +110,32 @@ class Context:
         target_path.write_bytes(contents)
 
         return target_path
+
+    async def emit_signal(self, signal: Signal) -> None:
+        """
+        Emits the given signal to the process engine
+        :param signal: the signal to be emitted
+        :raises SignalFailureError: if the signal could not be emitted
+        """
+        result = await self._signal_emitter(signal)
+
+        if not result.success:
+            raise SignalFailureError(
+                result.error_message or "Unknown Error", signal=signal
+            )
+
+    async def correlate_message(self, message: Message) -> MessageResult:
+        """
+        Correlates the given message to the process engine
+        :param message: the message to be correlated
+        :return: MessageResult in case of success, otherwise an Exception
+        :raises MessageCorrelateError: if the message cannot be correlated
+        """
+        result = await self._message_correlator(message)
+
+        if isinstance(result, MessageFailure):
+            raise MessageCorrelateError(
+                result.error_message or "Unknown Error", message=message
+            )
+
+        return result

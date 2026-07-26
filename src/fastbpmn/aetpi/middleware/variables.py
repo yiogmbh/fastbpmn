@@ -63,6 +63,19 @@ class BaseSyncVariableHandlerMiddleware:
                 case {"type": "externaltask.execute.start", "variables": variables}:
                     variables = self.process_application_variables(variables)
                     event["variables"] = variables
+                case {"type": "externaltask.message.delivered", "recipients": list()}:
+
+                    def process_recipients(recipient: dict) -> dict:
+                        variables = recipient.get("variables", {})
+                        recipient["variables"] = self.process_application_variables(
+                            variables
+                        )
+                        return recipient
+
+                    event["recipients"] = list(
+                        map(process_recipients, event["recipients"])
+                    )
+                    pass
 
             return event
 
@@ -82,6 +95,23 @@ class BaseSyncVariableHandlerMiddleware:
                     event["variables"] = variables
                     event["local_variables"] = local_variables
                 case {"type": "externaltask.execute.error", "variables": variables}:
+                    variables = self.process_server_variables(variables)
+                    event["variables"] = variables
+                # todo handle signal / messages here as well
+                case {
+                    "type": "externaltask.message.correlate",
+                    "variables": variables,
+                    "local_variables": local_variables,
+                    "scoped_variables": scoped_variables,
+                }:
+                    variables = self.process_server_variables(variables)
+                    local_variables = self.process_server_variables(local_variables)
+                    scoped_variables = self.process_server_variables(scoped_variables)
+
+                    event["variables"] = variables
+                    event["local_variables"] = local_variables
+                    event["scoped_variables"] = scoped_variables
+                case {"type": "externaltask.signal.send", "variables": variables}:
                     variables = self.process_server_variables(variables)
                     event["variables"] = variables
 

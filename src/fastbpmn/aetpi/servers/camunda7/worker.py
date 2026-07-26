@@ -1,7 +1,7 @@
 import asyncio
 from asyncio import Queue
 from functools import reduce
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from aetpiref.typing import (
@@ -21,11 +21,20 @@ from aetpiref.typing import (
     ExternalTaskLockAcceptEvent,
     ExternalTaskScope,
     TaskScope,
+    ExternalTaskEmitSignalEvent,
+    NO_TENANT,
+    TENANT_UNSPECIFIED,
+    ExternalTaskSignalEmittedEvent,
+    ExternalTaskSignalFailureEvent,
+    ExternalTaskCorrelateMessageEvent,
+    ExternalTaskMessageDeliveredEvent,
+    ExternalTaskMessageFailureEvent,
 )
 from structlog.contextvars import bound_contextvars
 
 from fastbpmn.aetpi import utils
 from fastbpmn.camunda import ProcessEngine
+from fastbpmn.camunda.errors import CorrelateMessageError
 
 if TYPE_CHECKING:
     pass
@@ -58,6 +67,42 @@ class Camunda7ServerWorker:
         # TDOO: proper exception handling?
         return await self.process_engine.external_task_extend_lock(
             worker_id=worker_id, task_id=task_id, duration=lock_duration
+        )
+
+    async def _emit_signal(
+        self,
+        signal_name: str,
+        variables: dict | None = None,
+        tenant_id: str | NO_TENANT | TENANT_UNSPECIFIED | None = TENANT_UNSPECIFIED,
+    ) -> bool:
+        # TDOO: proper exception handling?
+        return await self.process_engine.emit_signal(
+            signal_name=signal_name,
+            variables=variables,
+            tenant_id=tenant_id,
+        )
+
+    async def _correlate_message(
+        self,
+        message_name: str,
+        process_instance_id: str | None = None,
+        business_key: str | None = None,
+        tenant_id: str | NO_TENANT | TENANT_UNSPECIFIED | None = TENANT_UNSPECIFIED,
+        variables: dict[str, Any] | None = None,
+        local_variables: dict[str, Any] | None = None,
+        scoped_variables: dict[str, Any] | None = None,
+        multicast: bool = True,
+    ) -> dict | None:
+        # TDOO: proper exception handling?
+        return await self.process_engine.correlate_message(
+            message_name=message_name,
+            process_instance_id=process_instance_id,
+            business_key=business_key,
+            tenant_id=tenant_id,
+            variables=variables,
+            local_variables=local_variables,
+            scoped_variables=scoped_variables,
+            multicast=multicast,
         )
 
     async def _fetch_variables(
@@ -178,6 +223,58 @@ class Camunda7ServerWorker:
 
         logger.debug(
             "extended lock for external task", lock_duration=event.get("lock_duration")
+        )
+
+    async def _handle_signal_emit(
+        self, scope: TaskScope, event: ExternalTaskEmitSignalEvent
+    ) -> ExternalTaskSignalEmittedEvent | ExternalTaskSignalFailureEvent:
+        emitted = await self._emit_signal(
+            signal_name=event.get("signal_name"),
+            variables=event.get("variables", None),
+            tenant_id=event.get("tenant_id", TENANT_UNSPECIFIED),
+        )
+        if not emitted:
+            logger.debug("unable to emit signal", signal_name=event.get("signal_name"))
+            return utils.create_signal_failure_event(
+                event.get("transaction"), "Unable to emit signal"
+            )
+
+        logger.debug("emitted signal", signal_name=event.get("signal_name"))
+        return utils.create_signal_emitted_event(event.get("transaction"))
+
+    async def _handle_message_correlate(
+        self, scope: TaskScope, event: ExternalTaskCorrelateMessageEvent
+    ) -> ExternalTaskMessageDeliveredEvent | ExternalTaskMessageFailureEvent:
+
+        try:
+            correlated = await self._correlate_message(
+                message_name=event.get("message_name"),
+                process_instance_id=event.get("process_instance_id", None),
+                business_key=event.get("business_key", None),
+                tenant_id=event.get("tenant_id", TENANT_UNSPECIFIED),
+                variables=event.get("variables", None),
+                local_variables=event.get("local_variables", None),
+                scoped_variables=event.get("scoped_variables", None),
+                multicast=event.get("multicast", True),
+            )
+        except CorrelateMessageError as e:
+            logger.debug(
+                "unable to correlate message", message_name=event.get("message_name")
+            )
+            return utils.create_message_failure_event(event.get("transaction"), str(e))
+
+        if correlated is None:
+            logger.debug(
+                "unable to deliver message", message_name=event.get("message_name")
+            )
+            return utils.create_message_failure_event(
+                event.get("transaction"), "Unable to deliver message"
+            )
+
+        logger.debug("delivered message", message_name=event.get("message_name"))
+        # todo: resolve recipients
+        return utils.create_message_delivered_event(
+            event.get("transaction"), recipients=correlated
         )
 
     async def _handle_execute_accept(
@@ -367,6 +464,10 @@ class Camunda7ServerWorker:
                     answer = utils.create_event_end()
                 case {"type": "externaltask.execute.extendlock"}, {}:
                     await self._handle_lock_extend(task_scope, event)
+                case {"type": "externaltask.signal.emit"}, {}:
+                    answer = await self._handle_signal_emit(task_scope, event)
+                case {"type": "externaltask.message.correlate"}, {}:
+                    answer = await self._handle_message_correlate(task_scope, event)
                 case _:
                     logger.warning(
                         "event unexpected while processing, remains unhandled"

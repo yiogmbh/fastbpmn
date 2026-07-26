@@ -3,8 +3,8 @@ import logging
 from typing import Any, List, Optional, Tuple
 
 import httpx
-from aetpiref.typing import TaskScope
-from pydantic import HttpUrl, TypeAdapter
+from aetpiref.typing import TaskScope, NO_TENANT, TENANT_UNSPECIFIED
+from pydantic import HttpUrl
 from pydantic.alias_generators import to_snake
 from structlog import getLogger
 from tenacity import (
@@ -23,11 +23,11 @@ from .errors import (
     DeadlockSituationOccurredError,
     OptimisticLockError,
     RetryableError,
+    CorrelateMessageError,
 )
-from .models import ExternalTask
+from .utils import correlate_message_response, get_pending_tasks_response
 
 logger = getLogger(__name__)
-task_scope_adapter = TypeAdapter(list[ExternalTask])
 
 
 def raise_known(exc: httpx.HTTPStatusError):
@@ -267,6 +267,89 @@ class ProcessEngine:
 
         return True
 
+    def _decode_tenant(
+        self,
+        tenant_id: str | NO_TENANT | TENANT_UNSPECIFIED | None = TENANT_UNSPECIFIED,
+    ) -> dict:
+
+        if tenant_id is None or tenant_id == TENANT_UNSPECIFIED:
+            return {}
+        elif tenant_id == NO_TENANT:
+            return {"withoutTenantId": True}
+        else:
+            return {"tenantId": tenant_id}
+
+    async def correlate_message(
+        self,
+        message_name: str,
+        process_instance_id: str | None = None,
+        business_key: str | None = None,
+        tenant_id: str | NO_TENANT | TENANT_UNSPECIFIED | None = TENANT_UNSPECIFIED,
+        variables: dict[str, Any] | None = None,
+        local_variables: dict[str, Any] | None = None,
+        scoped_variables: dict[str, Any] | None = None,
+        multicast: bool = True,
+    ) -> list | None:
+        params = {
+            "messageName": message_name,
+            "all": multicast,
+            "resultEnabled": True,
+            "variablesInResultEnabled": True,
+        } | self._decode_tenant(tenant_id)
+
+        if process_instance_id:
+            params["processInstanceId"] = process_instance_id
+        if business_key:
+            params["businessKey"] = business_key
+        if variables:
+            params["processVariables"] = variables
+        if local_variables:
+            params["processVariablesLocal"] = local_variables
+        if scoped_variables:
+            params["processVariablesToTriggeredScope"] = scoped_variables
+
+        try:
+            response = await self.request.post_raw("/message", data=params)
+
+            return correlate_message_response(response)
+        except httpx.TimeoutException:
+            return None
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code in (400,):
+                raise CorrelateMessageError.of_http_status_error(exc)
+            if exc.response.status_code in (400, 403):
+                return None
+            raise_known(exc)
+            raise exc
+
+    async def emit_signal(
+        self,
+        signal_name: str,
+        variables: dict | None = None,
+        tenant_id: str | NO_TENANT | TENANT_UNSPECIFIED | None = TENANT_UNSPECIFIED,
+    ) -> bool:
+        """
+        Tries to emit a signal to the process engine
+
+        **Remark** tenant_id = None / TENANT_UNSPECIFIED means that the signal is emitted to all tenants
+        """
+        params = {"name": signal_name} | self._decode_tenant(tenant_id)
+
+        if variables:
+            params["variables"] = variables
+
+        try:
+            await self.request.post_raw("/signal", data=params)
+        except httpx.TimeoutException:
+            return False
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code in (400, 403):
+                return False
+            raise_known(exc)
+            raise exc
+
+        return True
+
     @retry(
         retry=retry_if_exception_type(RetryableError),
         stop=stop_after_attempt(3),
@@ -464,7 +547,6 @@ class ProcessEngine:
         if not res:
             return []
 
-        snaked = task_scope_adapter.validate_python(res)
+        task_scopes = get_pending_tasks_response(res)
 
-        dumped = task_scope_adapter.dump_python(snaked, by_alias=False)
-        return dumped
+        return task_scopes

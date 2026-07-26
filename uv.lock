@@ -8,11 +8,14 @@ resolution-markers = [
 
 [[package]]
 name = "aetpiref"
-version = "0.1.6"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple/" }
-sdist = { url = "https://files.pythonhosted.org/packages/67/86/bd76bc89d25d86e3f77265a400d6245fb7b8834e938f8918d5e7bc33ab6b/aetpiref-0.1.6.tar.gz", hash = "sha256:a601bc1219fecf4733c7de8c96a768ec96e527b0f8dc3f542587225ca7f1d89c", size = 3267, upload-time = "2026-04-05T09:12:55.394Z" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/44/12/c51feb0a7dc966bad67e9972f488035b0726f23c4b7bd2cadc3f9a80bae3/aetpiref-0.2.0.tar.gz", hash = "sha256:e895e1f0c049f1de83ee8d706ff3eee793f8f42e4d0721c492ba4f7832503497", size = 3965, upload-time = "2026-07-26T15:19:05.763Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c9/21/e20a8304cc320e6dadf73af70c3b8ab9c67c86948bd5813200370ec8b178/aetpiref-0.1.6-py3-none-any.whl", hash = "sha256:61ea0ae45fd4978553b144eb54fe1cd45f2ca8946432812222a242a70c592cd7", size = 3735, upload-time = "2026-04-05T09:12:54.249Z" },
+    { url = "https://files.pythonhosted.org/packages/6b/2c/b1281ef88971019ade39ed9e1db9cf8099f9596109b7928efaec68753b99/aetpiref-0.2.0-py3-none-any.whl", hash = "sha256:8ab4dafd2a12183b979a58c57f1b261099027588746fa9aadf5e78edde24523e", size = 4376, upload-time = "2026-07-26T15:19:04.705Z" },
 ]
 
 [[package]]
@@ -485,7 +488,7 @@ tox = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aetpiref", specifier = ">=0.1.6,<1.0.0" },
+    { name = "aetpiref", specifier = ">=0.2.0,<1.0.0" },
     { name = "aiolimiter", specifier = ">=1.2.1" },
     { name = "asyncer", specifier = "~=0.0.2" },
     { name = "culsans", specifier = ">=0.11.0" },
@@ -1589,11 +1592,11 @@ wheels = [
 
 [[package]]
 name = "typing-extensions"
-version = "4.15.0"
+version = "4.16.0"
 source = { registry = "https://pypi.org/simple/" }
-sdist = { url = "https://files.pythonhosted.org/packages/72/94/1a15dd82efb362ac84269196e94cf00f187f7ed21c242792a923cdb1c61f/typing_extensions-4.15.0.tar.gz", hash = "sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466", size = 109391, upload-time = "2025-08-25T13:49:26.313Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f6/cc/6253133b5bb138fc3306cebfbda2c520f545d36b5be2c7255cc528bb45d6/typing_extensions-4.16.0.tar.gz", hash = "sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5", size = 113555, upload-time = "2026-07-02T08:40:05.92Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/18/67/36e9267722cc04a6b9f15c7f3441c2363321a3ea07da7ae0c0707beb2a9c/typing_extensions-4.15.0-py3-none-any.whl", hash = "sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548", size = 44614, upload-time = "2025-08-25T13:49:24.86Z" },
+    { url = "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl", hash = "sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8", size = 45571, upload-time = "2026-07-02T08:40:04.659Z" },
 ]
 
 [[package]]
