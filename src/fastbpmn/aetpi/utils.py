@@ -212,3 +212,41 @@ def create_capabilities_response_event(
     capabilities: list | None = None,
 ) -> types.CapabilitiesResponseEvent:
     return {"type": "capabilities.response", "capabilities": capabilities or []}
+
+
+def create_signal_emitted_event(
+    transaction: str,
+) -> types.ExternalTaskSignalEmittedEvent:
+    return {"type": "externaltask.signal.emitted", "transaction": transaction}
+
+
+def create_signal_failure_event(
+    transaction: str,
+    error_message: str,
+) -> types.ExternalTaskSignalFailureEvent:
+    return {
+        "type": "externaltask.signal.error",
+        "transaction": transaction,
+        "error_message": error_message,
+    }
+
+
+def create_message_delivered_event(
+    transaction: str, recipients: list[types.MessageDeliveryRecipient]
+) -> types.ExternalTaskMessageDeliveredEvent:
+    return {
+        "type": "externaltask.message.delivered",
+        "transaction": transaction,
+        "recipients": recipients,
+    }
+
+
+def create_message_failure_event(
+    transaction: str,
+    error_message: str,
+) -> types.ExternalTaskMessageFailureEvent:
+    return {
+        "type": "externaltask.message.error",
+        "transaction": transaction,
+        "error_message": error_message,
+    }

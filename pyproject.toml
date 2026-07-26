@@ -10,7 +10,7 @@ authors = [
 ]
 
 dependencies = [
-    "aetpiref>=0.1.6,<1.0.0",
+    "aetpiref>=0.2.0,<1.0.0",
     "aiolimiter>=1.2.1",
     "asyncer~=0.0.2",
     "culsans>=0.11.0",
@@ -112,6 +112,12 @@ docs = [
 
 [tool.uv]
 keyring-provider = "disabled"
+
+
+# [tool.uv.sources]
+# aetpiref = { path = "../aetpi", editable = true}
+# fastbpmn-enterprise = { path = "../fastbpmn-enterprise", editable = true }
+# fastbpmn = { path = "../../github/fastbpmn", editable = true}
 
 [[tool.uv.index]]
 name = "pypi"
