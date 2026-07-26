@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Document builtins (#15)
 - *(context)* Support emitting messages and signals (#17)
+- *(results)* Support explicitly setting local variables when completing an external task (#18)
 
 ### 📚 Documentation
 
