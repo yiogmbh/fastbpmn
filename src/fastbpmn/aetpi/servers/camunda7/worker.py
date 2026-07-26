@@ -144,10 +144,14 @@ class Camunda7ServerWorker:
         worker_id: str,
         task_id: str,
         variables: dict | None,
+        local_variables: dict | None = None,
     ) -> bool:
         # TDOO: proper exception handling?
         return await self.process_engine.external_task_complete(
-            task_id=task_id, worker_id=worker_id, variables=variables or {}
+            task_id=task_id,
+            worker_id=worker_id,
+            variables=variables or {},
+            local_variables=local_variables or {},
         )
 
     async def _task_failure(
@@ -350,6 +354,7 @@ class Camunda7ServerWorker:
             worker_id=scope["worker_id"],
             task_id=scope["id"],
             variables=event.get("variables", None),
+            local_variables=event.get("local_variables", None),
         )
 
         if not completed:

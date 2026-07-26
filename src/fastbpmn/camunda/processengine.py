@@ -359,7 +359,11 @@ class ProcessEngine:
         after=after_log(logger, logging.WARNING),
     )
     async def external_task_complete(
-        self, task_id: str, worker_id: str, variables: dict
+        self,
+        task_id: str,
+        worker_id: str,
+        variables: dict,
+        local_variables: dict | None = None,
     ) -> bool:
         """
         Complete the external task specified by its id
@@ -367,12 +371,15 @@ class ProcessEngine:
         :params task_id: the id of the external task
         :params worker_id: the id of the worker that wants to complete the task
         :params variables: the variables to be set
+        :params local_variables: local variables to be set
         """
         params: dict[str, Any] = {
             "workerId": worker_id,
         }
         if variables:
             params["variables"] = variables
+        if local_variables:
+            params["localVariables"] = local_variables
 
         try:
             await self.request.post_raw(
