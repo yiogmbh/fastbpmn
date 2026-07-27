@@ -522,6 +522,28 @@ class ProcessEngine:
                 return False, None
             raise exc
 
+    async def external_task_execution_file_variable(
+        self,
+        execution_id: str,
+        variable_name: str,
+    ) -> tuple[bool, bytes | None]:
+        """
+        Get the file content of a variable from a specific execution scope
+
+        :params execution_id: the id of the execution
+        :params variable_name: the name of the variable
+        """
+        try:
+            content = await self.request.get_raw(
+                f"/execution/{execution_id}/localVariables/{variable_name}/data",
+                binary=True,
+            )
+            return True, content
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code in (400, 404):
+                return False, None
+            raise exc
+
     async def get_pending_tasks(
         self,
     ) -> List[TaskScope]:
