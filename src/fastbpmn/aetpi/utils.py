@@ -253,3 +253,23 @@ def create_message_failure_event(
         "transaction": transaction,
         "error_message": error_message,
     }
+
+
+def create_variable_fetch_completed_event(
+    transaction: str,
+) -> types.ExternalTaskVariableFetchCompletedEvent:
+    return {
+        "type": "externaltask.variable.fetch.completed",
+        "transaction": transaction,
+    }
+
+
+def create_variable_fetch_failed_event(
+    transaction: str,
+    error_message: str,
+) -> types.ExternalTaskVariableFetchFailedEvent:
+    return {
+        "type": "externaltask.variable.fetch.failed",
+        "transaction": transaction,
+        "error_message": error_message,
+    }

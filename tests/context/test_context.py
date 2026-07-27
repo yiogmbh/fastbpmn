@@ -6,7 +6,11 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from fastbpmn.context.context import Context
-from fastbpmn.context.exceptions import MessageCorrelateError, SignalFailureError
+from fastbpmn.context.exceptions import (
+    MessageCorrelateError,
+    SignalFailureError,
+    VariableFetchError,
+)
 from fastbpmn.context.io import Delete, TempPath
 from fastbpmn.context.models import (
     Message,
@@ -29,7 +33,7 @@ class UnitTestError(Exception):
 @pytest.mark.asyncio
 async def test_context_manager_no_op(patched_delete_all):
     async with Context(
-        file_downloader=MagicMock(),
+        variable_fetcher=AsyncMock(),
         message_correlator=AsyncMock(),
         signal_emitter=AsyncMock(),
     ):
@@ -68,7 +72,7 @@ async def test_context_manager_with_dirs_and_files(
 
     with expectation:
         async with Context(
-            file_downloader=MagicMock(),
+            variable_fetcher=AsyncMock(),
             message_correlator=AsyncMock(),
             signal_emitter=AsyncMock(),
         ) as ctx:
@@ -105,23 +109,21 @@ async def test_download_file_with_name(
 
     mocked_target_path1 = MagicMock(Path)
 
-    mocked_contents1 = MagicMock(bytes)
-
     mocked_temp_file_in_dir.return_value = mocked_target_path1
 
-    mocked_file_downloader = AsyncMock()
-    mocked_file_downloader.return_value = mocked_contents1
+    variable_fetcher = AsyncMock()
 
     async with Context(
-        mocked_file_downloader,
+        variable_fetcher=variable_fetcher,
         message_correlator=AsyncMock(),
         signal_emitter=AsyncMock(),
     ) as ctx:
         assert mocked_target_path1 == await ctx.download_file(file_info1)
 
     # Assert
-    mocked_file_downloader.assert_awaited_once_with("file1")
-    mocked_target_path1.write_bytes.assert_called_once_with(mocked_contents1)
+    variable_fetcher.assert_awaited_once_with(
+        variable_name="file1", file_path=str(mocked_target_path1)
+    )
     mocked_temp_file_in_dir.assert_called_once_with("file1.txt", Delete.ALWAYS)
     mocked_temp_file.assert_not_called()
 
@@ -141,24 +143,52 @@ async def test_download_file_without_name(
 
     mocked_target_path2 = MagicMock(Path)
 
-    mocked_contents2 = MagicMock(bytes)
-
     mocked_temp_file.return_value = mocked_target_path2
-    mocked_file_downloader = AsyncMock()
-    mocked_file_downloader.return_value = mocked_contents2
+    variable_fetcher = AsyncMock()
 
     async with Context(
-        mocked_file_downloader,
+        variable_fetcher=variable_fetcher,
         message_correlator=AsyncMock(),
         signal_emitter=AsyncMock(),
     ) as ctx:
         assert mocked_target_path2 == await ctx.download_file(file_info2)
 
     # Assert
-    mocked_file_downloader.assert_awaited_once_with("file2")
-    mocked_target_path2.write_bytes.assert_called_once_with(mocked_contents2)
+    variable_fetcher.assert_awaited_once_with(
+        variable_name="file2", file_path=str(mocked_target_path2)
+    )
     mocked_temp_file_in_dir.assert_not_called()
     mocked_temp_file.assert_called_once_with(Delete.ALWAYS)
+
+
+@mock.patch("fastbpmn.context.context.Context.temp_file")
+@mock.patch("fastbpmn.context.context.Context.temp_file_in_dir")
+@pytest.mark.asyncio
+async def test_download_file_variable_fetch_error(
+    mocked_temp_file_in_dir: MagicMock, mocked_temp_file: MagicMock
+):
+
+    MagicMock(Task)
+
+    file_info = MagicMock(FileInfo)
+    type(file_info).filename = "test.txt"
+    type(file_info).variable = "test_var"
+
+    mocked_target_path = MagicMock(Path)
+    mocked_temp_file_in_dir.return_value = mocked_target_path
+
+    variable_fetcher = AsyncMock()
+    variable_fetcher.side_effect = VariableFetchError(
+        "fetch failed", variable_name="test_var", file_path="/tmp/test.txt"
+    )
+
+    async with Context(
+        variable_fetcher=variable_fetcher,
+        message_correlator=AsyncMock(),
+        signal_emitter=AsyncMock(),
+    ) as ctx:
+        with pytest.raises(VariableFetchError, match="fetch failed"):
+            await ctx.download_file(file_info)
 
 
 @mock.patch("fastbpmn.context.context.delete_all")
@@ -168,7 +198,7 @@ async def test_emit_signal_success(patched_delete_all):
     signal_emitter.return_value = SignalResult(success=True)
 
     async with Context(
-        file_downloader=MagicMock(),
+        variable_fetcher=AsyncMock(),
         message_correlator=AsyncMock(),
         signal_emitter=signal_emitter,
     ) as ctx:
@@ -186,7 +216,7 @@ async def test_emit_signal_failure(patched_delete_all):
     signal_emitter.return_value = SignalResult(success=False, error_message="fail")
 
     async with Context(
-        file_downloader=MagicMock(),
+        variable_fetcher=AsyncMock(),
         message_correlator=AsyncMock(),
         signal_emitter=signal_emitter,
     ) as ctx:
@@ -205,7 +235,7 @@ async def test_correlate_message_success(patched_delete_all):
     message_correlator.return_value = expected_result
 
     async with Context(
-        file_downloader=MagicMock(),
+        variable_fetcher=AsyncMock(),
         message_correlator=message_correlator,
         signal_emitter=AsyncMock(),
     ) as ctx:
@@ -223,7 +253,7 @@ async def test_correlate_message_failure(patched_delete_all):
     message_correlator.return_value = MessageFailure(error_message="nope")
 
     async with Context(
-        file_downloader=MagicMock(),
+        variable_fetcher=AsyncMock(),
         message_correlator=message_correlator,
         signal_emitter=AsyncMock(),
     ) as ctx:

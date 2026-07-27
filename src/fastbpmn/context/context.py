@@ -1,19 +1,16 @@
 from asyncio import shield
 from pathlib import Path
-from typing import TYPE_CHECKING, Awaitable, Callable
+from typing import TYPE_CHECKING
 
 from .exceptions import SignalFailureError, MessageCorrelateError
 from .models import Signal, Message, MessageResult, MessageFailure
 
 from .io import Delete
 from .utils import create_temp_dir, create_temp_file, delete_all
-from .types import MessageCorrelator, SignalEmitter
+from .types import MessageCorrelator, SignalEmitter, VariableFetcher
 
 if TYPE_CHECKING:
     from fastbpmn.models.base import FileInfo
-
-
-FileDownloader = Callable[[str], Awaitable[bytes]]
 
 
 class Context:
@@ -27,19 +24,19 @@ class Context:
 
     __slots__ = [
         "temp_paths",
-        "_file_downloader",
+        "_variable_fetcher",
         "_message_correlator",
         "_signal_emitter",
     ]
 
     def __init__(
         self,
-        file_downloader: FileDownloader,
+        variable_fetcher: VariableFetcher,
         message_correlator: MessageCorrelator,
         signal_emitter: SignalEmitter,
     ):
         self.temp_paths = []
-        self._file_downloader = file_downloader
+        self._variable_fetcher = variable_fetcher
         self._message_correlator = message_correlator
         self._signal_emitter = signal_emitter
 
@@ -106,8 +103,9 @@ class Context:
             else self.temp_file(flags)
         )
 
-        contents = await self._file_downloader(file_info.variable)
-        target_path.write_bytes(contents)
+        await self._variable_fetcher(
+            variable_name=file_info.variable, file_path=str(target_path)
+        )
 
         return target_path
 
