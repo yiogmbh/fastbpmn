@@ -1,4 +1,5 @@
 venv
+.venv
 tests
 secrets
 *.egg-info
@@ -7,3 +8,13 @@ secrets
 .pytest_cache
 .tox
 dist
+.opencode
+.idea
+.vscode
+.coverage
+*.log
+*-logs*.txt
+docs
+examples
+http_tests
+.github
