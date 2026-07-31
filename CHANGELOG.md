@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(results)* Support explicitly setting local variables when completing an external task (#18)
 - *(camunda)* Add support for bytes variables in camunda7 (#19)
 - *(context)* Rework file variable fetching to be aetpi 0.2.0 compliant (#20)
+- *(context)* Rework file variable fetching to support scoped variables (#21)
 
 ### 📚 Documentation
 
