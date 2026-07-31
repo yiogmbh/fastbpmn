@@ -1,11 +1,10 @@
 import asyncio
 from asyncio import Queue
 from functools import reduce
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import structlog
-from pathlib import Path
-
 from aetpiref.typing import (
     AETPIApplication,
     AETPIReceiveEvent,
@@ -143,6 +142,28 @@ class Camunda7ServerWorker:
         result = reduce(lambda x, y: x | y, results, {})
 
         return result
+
+    async def _fetch_file_variable(
+        self,
+        process_instance_id: str,
+        execution_id: str,
+        variable_name: str,
+    ) -> bytes | None:
+        execution_ids = await self.process_engine.process_instance_execution_ids(
+            process_instance_id=process_instance_id,
+            execution_id=execution_id,
+        )
+        for eid in reversed(execution_ids):
+            (
+                success,
+                contents,
+            ) = await self.process_engine.external_task_execution_file_variable(
+                execution_id=eid,
+                variable_name=variable_name,
+            )
+            if success and contents is not None:
+                return contents
+        return None
 
     async def _task_complete(
         self,
@@ -428,11 +449,12 @@ class Camunda7ServerWorker:
         file_path = event.get("file_path")
 
         try:
-            success, contents = await self.process_engine.external_task_file_variable(
+            contents = await self._fetch_file_variable(
                 process_instance_id=scope["process_instance_id"],
+                execution_id=scope["execution_id"],
                 variable_name=variable_name,
             )
-            if not success or contents is None:
+            if contents is None:
                 return utils.create_variable_fetch_failed_event(
                     event.get("transaction"),
                     f"Variable '{variable_name}' not found",
