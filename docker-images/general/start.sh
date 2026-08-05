@@ -3,13 +3,13 @@ set -e
 
 # Try to find a minion application that can be started
 # And add appropriate values to some environment variables
-if [ -f app/app/fastbpmn.py ]; then
-    DEFAULT_MODULE_NAME=app.minion
-elif [ -f app/fastbpmn.py ]; then
-    DEFAULT_MODULE_NAME=minion
+if [ -f app/app/app.py ]; then
+    DEFAULT_MODULE_NAME=app.app
+elif [ -f app/app.py ]; then
+    DEFAULT_MODULE_NAME=app
 fi
 export MODULE_NAME=${MODULE_NAME:-$DEFAULT_MODULE_NAME}
-export VARIABLE_NAME=${VARIABLE_NAME:-minion}
+export VARIABLE_NAME=${VARIABLE_NAME:-app}
 export PYTHONPATH=$PYTHONPATH:app
 
 # If there's a prestart.sh script in the
@@ -25,9 +25,9 @@ fi
 
 # if there's a virtual environment we going to activate it
 # which makes installations of own packages possible and easier
-if [ -d /home/minion/venv ] ; then
+if [ -d /home/fastbpmn/venv ] ; then
     echo "Activating virtual environment"
-    . /home/minion/venv/bin/activate
+    . /home/fastbpmn/venv/bin/activate
 fi
 
 echo "Working directory: $(pwd)"
@@ -43,11 +43,11 @@ fi
 
 # Try to infer whether a real script is given for startup or not
 if [ -f "$1" ] && [ -x "$1" ] ; then
-    # The command seems to be overriden, so we simply start using the given args.
-    echo "Detected overriden startup options going to use them."
+    # The command seems to be overridden, so we simply start using the given args.
+    echo "Detected overridden startup options going to use them."
     exec "$@"
 else
     # Seems like we have to startup a regular minion, so we try to use our start.py script
-    echo "Use the integrated start.py script to startup a minion."
-    exec python3 /home/minion/start.py "$@"
+    echo "Use the integrated start.py script to startup fastbpmn."
+    exec python3 /home/fastbpmn/start.py "$@"
 fi

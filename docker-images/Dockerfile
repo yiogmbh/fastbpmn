@@ -10,8 +10,6 @@ WORKDIR /home/fastbpmn
 # Install libmagic1 (required for file mimetype detection)
 RUN apt-get update && apt-get install -y \
     libmagic1 \
-    libdmtx0b  \
-    qpdf \
     && rm -rf /var/lib/apt/lists/*
 # ----------------------------------------------------------------------
 
