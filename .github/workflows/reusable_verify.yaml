@@ -25,6 +25,10 @@ on:
 jobs:
 
   python-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        tox-env: [py311, py312, py313, py314]
     if: ${{ inputs.test }}
     runs-on: ubuntu-latest
     defaults:
@@ -38,7 +42,8 @@ jobs:
       - name: pytest
         uses: yiogmbh/yio-actions/python/uv-tox@v2
         with:
-          environment: py311
+          dependency_group: 'tox'
+          environment: ${{ matrix.tox-env }}
 
   python-lint:
     if: ${{ inputs.lint }}
