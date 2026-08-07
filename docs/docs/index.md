@@ -2,7 +2,7 @@
 icon: lucide/rocket
 ---
 
-![fastbpmn logo](assets/logo.png)
+![fastbpmn logo](assets/logo.svg)
 
 # Get started
 

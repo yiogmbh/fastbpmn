@@ -46,6 +46,7 @@ Copyright &copy; 2026 yio gmbh
 # Read more: https://zensical.org/docs/setup/navigation/
 nav = [
     { "Get started" = "index.md" },
+    { "Docker" = "docker.md"},
     { "Roadmap" = "roadmap.md"},
     { "Changelog" = "changelog.md"},
     { "Features" = [
@@ -265,7 +266,9 @@ features = [
 # option in the "theme" subsection. The logo must be a relative path to a file
 # in your "docs_dir", e.g., to use `docs/assets/logo.png` you would set:
 # ----------------------------------------------------------------------------
-logo = "assets/logo.png"
+logo = "assets/logo.svg"
+# favicon = "assets/android-chrome-512x512.png"
+favicon = "assets/favicon-32x32.png"
 
 # ----------------------------------------------------------------------------
 # If you don't have a dedicated project logo, you can use a built-in icon from
