@@ -9,7 +9,7 @@ icon: lucide/rocket
 ## Prerequisites
 
 * [ ] a camunda7 compatible process engine (squirrel currently supports camunda7 and derivatives only)
-  (look at [int](integrations))
+  (look at [int](processengines))
 * [ ] a process full of external tasks / service tasks you want to process
 * [ ] a few minutes to setup your python project
 
@@ -22,7 +22,7 @@ uv add fastbpmn
 
 ## Example
 
-The example refers to the examples provided for each of the supported process engines (see [integrations](./integrations/index.md))
+The example refers to the examples provided for each of the supported process engines (see [integrations](processengines/index.md))
 
 ``` python title="example.py"
 from contextlib import asynccontextmanager

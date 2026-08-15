@@ -46,18 +46,22 @@ Copyright &copy; 2026 yio gmbh
 # Read more: https://zensical.org/docs/setup/navigation/
 nav = [
     { "Get started" = "index.md" },
-    { "Docker" = "docker.md"},
     { "Roadmap" = "roadmap.md"},
     { "Changelog" = "changelog.md"},
     { "Features" = [
+        "features/index.md",
         "features/builtins.md",
         "features/dependencies.md"
     ]},
+    { "Process Engines" = [
+        "processengines/index.md",
+        "processengines/camunda7.md",
+        "processengines/operaton.md",
+        "processengines/cibseven.md"
+    ]},
     { "Integrations" = [
         "integrations/index.md",
-        "integrations/camunda7.md",
-        "integrations/operaton.md",
-        "integrations/cibseven.md"
+        "integrations/docker.md"
     ]}
 ]
 
