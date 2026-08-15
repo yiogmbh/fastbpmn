@@ -3,21 +3,13 @@ FROM ${UV_IMAGE} AS fastbpmn-base
 
 # ----------------------------------------------------------------------
 # Setup a non root user for execution
-RUN if command -v useradd >/dev/null 2>&1; then \
-        useradd --create-home --shell /bin/bash fastbpmn; \
-    else \
-        adduser -D -s /bin/sh fastbpmn; \
-    fi
+RUN adduser -D -s /bin/sh fastbpmn
 WORKDIR /home/fastbpmn
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
 # Install libmagic (required for file mimetype detection)
-RUN if command -v apt-get >/dev/null 2>&1; then \
-        apt-get update && apt-get install -y libmagic1 && rm -rf /var/lib/apt/lists/*; \
-    else \
-        apk add --no-cache libmagic; \
-    fi
+RUN apk add --no-cache libmagic
 # ----------------------------------------------------------------------
 
 FROM fastbpmn-base AS build-python
@@ -35,9 +27,13 @@ ENV PYTHONUNBUFFERED=1
 
 # ----------------------------------------------------------------------
 # Install fastbpmn locally (from source) and all requirements
-COPY . /build
-RUN --mount=type=secret,id=uv_credentials,target=/root/.local/share/uv/credentials/credentials.toml \
-     cd /build && uv sync --no-dev --no-editable && cd /home/fastbpmn
+RUN --mount=type=bind,target=/tmp/builder,source=.,readwrite \
+    uv venv  \
+    && if ls /tmp/builder/dist/*.whl 1> /dev/null 2>&1; then \
+         uv pip install /tmp/builder/dist/*.whl; \
+       else \
+         cd /tmp/builder && uv build && cd /home/fastbpmn/ && uv pip install /tmp/builder/dist/*.whl; \
+       fi
 
 ENV PATH="/home/fastbpmn/.venv/bin:$PATH"
 # ----------------------------------------------------------------------

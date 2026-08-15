@@ -25,9 +25,9 @@ fi
 
 # if there's a virtual environment we going to activate it
 # which makes installations of own packages possible and easier
-if [ -d /home/fastbpmn/venv ] ; then
+if [ -d /home/fastbpmn/.venv ] ; then
     echo "Activating virtual environment"
-    . /home/fastbpmn/venv/bin/activate
+    . /home/fastbpmn/.venv/bin/activate
 fi
 
 echo "Working directory: $(pwd)"

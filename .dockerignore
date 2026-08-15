@@ -7,7 +7,6 @@ secrets
 .git
 .pytest_cache
 .tox
-dist
 .opencode
 .idea
 .vscode
