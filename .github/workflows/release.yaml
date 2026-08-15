@@ -11,35 +11,19 @@ concurrency:
 
 jobs:
   # build and upload an artifact
-  build:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-
-      - name: setup uv
-        uses: astral-sh/setup-uv@v8.0.0
-
-      - name: build
-        run: |
-          uv build
-
-      - name: upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: built-pypi-package
-          path: dist
+  python-build:
+    uses: ./.github/workflows/reusable_python-build.yaml
 
   docker-publish:
     name: Publish Docker 🐳 image to  📦 to ghcr
-    uses: ./.github/workflows/reusable_dockerbuild.yaml
+    needs: python-build
+    uses: ./.github/workflows/reusable_docker-build.yaml
+    with:
+      version: "${{ github.ref_name }}"
   # publish (to pypi)
-  publish:
+  pypi-publish:
     name: Publish Python 🐍 distribution 📦 to PyPI
-    needs: build
+    needs: python-build
     environment:
       name: pypi
       # Replace <package-name> with your PyPI project name
@@ -53,7 +37,7 @@ jobs:
         shell: bash
     steps:
       - name: Download a single artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: built-pypi-package
           path: dist
@@ -61,8 +45,8 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
 
   # create github release
-  release:
-    needs: build
+  github-release:
+    needs: python-build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -83,7 +67,7 @@ jobs:
           echo "changes=$(git cliff --current --strip header)" >> $GITHUB_OUTPUT
 
       - name: download artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: built-pypi-package
           path: dist
