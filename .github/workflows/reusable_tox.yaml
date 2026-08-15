@@ -1,0 +1,30 @@
+name: Build / Publish Documentation
+on:
+  workflow_call:
+    inputs:
+      dependency_group:
+        default: 'tox'
+        type: string
+        description: 'The tox dependency group to run'
+      environment:
+        required: true
+        description: 'The tox environment to run'
+        type: string
+
+jobs:
+  tox:
+    name: ${{ inputs.environment || 'tox' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v8.0.0
+      - name: pytest
+        uses: yiogmbh/yio-actions/python/uv-tox@v2
+        with:
+          dependency_group: ${{ inputs.dependency_group }}
+          environment: ${{ inputs.environment }}

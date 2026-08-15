@@ -1,0 +1,51 @@
+name: Build / Publish Documentation
+on:
+  workflow_call:
+    inputs:
+      artifact_name:
+        default: 'built-pypi-package'
+        type: string
+        description: 'The name of the artifact to upload'
+      version:
+        required: false
+        description: 'The version to apply to the artifact (if unset, the version will be the version in pyproject.toml)'
+        type: string
+
+    outputs:
+      version:
+        description: 'The version of the artifact'
+        value: ${{ jobs.buils.outputs.version }}
+      artifact_name:
+        value: ${{ jobs.buils.outputs.artifact_name }}
+        description: 'The name of the artifact uploaded'
+
+
+jobs:
+  build:
+    outputs:
+      artifact_name: ${{ steps.build.outputs.artifact_name }}
+      version: ${{ steps.build.outputs.version }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: setup uv
+        uses: astral-sh/setup-uv@v8.0.0
+      - name: apply version
+        if: inputs.version
+        run: uv version ${{ inputs.version }}
+
+      - name: build
+        uses: yiogmbh/yio-actions/python/uv-build@v2
+
+      - name: verify
+        run: uv run --with dist/*.whl --no-project -- python -c "import fastbpmn"
+
+      - name: upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: built-pypi-package
+          path: dist

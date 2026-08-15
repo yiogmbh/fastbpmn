@@ -1,6 +1,16 @@
 name: version.yaml
+
+permissions:
+  contents: read
+
 on:
   workflow_call:
+    inputs:
+      dev:
+        description: "Should a dev version be returned?"
+        required: false
+        type: boolean
+        default: false
     outputs:
       bumped_version:
         description: "The version that would be bumped next"
@@ -10,7 +20,7 @@ on:
         value: ${{ jobs.version.outputs.previous }}
       is_release:
         description: "whether a release is required / can be made"
-        value: ${{ jobs.version.outputs.version != jobs.version.outputs.previous }}
+        value: ${{ jobs.version.outputs.is_release }}
 
 jobs:
   version:
@@ -21,6 +31,7 @@ jobs:
     outputs:
       version: ${{ steps.checks.outputs.version }}
       previous: ${{ steps.checks.outputs.previous }}
+      is_release: ${{ steps.checks.outputs.version != steps.checks.outputs.previous }}
 
     steps:
     - name: Check out repository
@@ -34,5 +45,9 @@ jobs:
       uses: taiki-e/install-action@git-cliff
     - id: checks
       run: |
-        echo "version=$(git cliff --unreleased --bump --context | jq -r '.[0] | .version')" >> $GITHUB_OUTPUT
+        VERSION=$(git cliff --unreleased --bump --context | jq -r '.[0] | .version')
+        if [ "${{ inputs.dev }}" = "true" ]; then
+          VERSION="${VERSION}.dev$(git rev-list --count $(git describe --tags --abbrev=0)..HEAD)"
+        fi
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
         echo "previous=$(git cliff --unreleased --bump --context | jq -r '.[0] | .previous.version')" >> $GITHUB_OUTPUT

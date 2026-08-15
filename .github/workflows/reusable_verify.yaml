@@ -24,62 +24,47 @@ on:
 
 jobs:
 
+  dev-version:
+    if: ${{ inputs.build }}
+    uses: ./.github/workflows/version.yaml
+    with:
+      dev: true
+
   python-tests:
+    if: ${{ inputs.test }}
+    needs: dev-version
     strategy:
       fail-fast: false
       matrix:
         tox-env: [py311, py312, py313, py314]
-    if: ${{ inputs.test }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-      - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v8.0.0
-      - name: pytest
-        uses: yiogmbh/yio-actions/python/uv-tox@v2
-        with:
-          dependency_group: 'tox'
-          environment: ${{ matrix.tox-env }}
+    uses: ./.github/workflows/reusable_tox.yaml
+    with:
+      dependency_group: 'tox'
+      environment: ${{ matrix.tox-env }}
 
   python-lint:
     if: ${{ inputs.lint }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-      - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v8.0.0
-      - name: pytest
-        uses: yiogmbh/yio-actions/python/uv-tox@v2
-        with:
-          environment: ruff
+    needs: dev-version
+    strategy:
+      fail-fast: false
+      matrix:
+        tox-env: [ruff]
+    uses: ./.github/workflows/reusable_tox.yaml
+    with:
+      dependency_group: 'tox'
+      environment: ${{ matrix.tox-env }}
 
   python-build:
     if: ${{ inputs.build }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-      - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v8.0.0
-      - name: build
-        uses: yiogmbh/yio-actions/python/uv-build@v2
-      - name: verify
-        run: |
-          uv run --with dist/*.whl --no-project -- python -c "import aetpiref"
+    needs: dev-version
+    uses: ./.github/workflows/reusable_python-build.yaml
+    with:
+      version: ${{ needs.dev-version.outputs.bumped_version }}
 
   docker-build:
-    uses: ./.github/workflows/reusable_dockerbuild.yaml
+    if: ${{ inputs.build }}
+    uses: ./.github/workflows/reusable_docker-build.yaml
+    needs: [dev-version, python-build]
     with:
+      version: ${{ needs.dev-version.outputs.bumped_version }}
       push: ${{ inputs.publish }}
