@@ -2,6 +2,8 @@
 
 fastbpmn publishes pre-built Docker images for multiple Python versions, operating system bases, and architectures.
 
+You can use these images to have a solid foundation for your process automation needs.
+
 ## Available images
 
 Images are published to `ghcr.io/yiogmbh/fastbpmn` with the following tag scheme:
@@ -44,12 +46,47 @@ The container exposes no ports by default. It runs `squirrel run` as the entrypo
 
 ## Building locally
 
+**Recommended — build all variants with Docker Bake:**
+
+!!! tip "Local usage"
+    If you want to use the images locally, it is usually required to limit the build to at least a single platform,
+    as multi platform images are not yet supported to export / load directly to local docker.
+
+    To achieve this, two override files are provided:
+
+    - `docker-bake.override.amd64.hcl` for the `linux/amd64` platform
+    - `docker-bake.override.arm64.hcl` for the `linux/arm64` platform
+
+
+
 ```shell
-docker build \
-  --build-arg UV_IMAGE=ghcr.io/astral-sh/uv:python3.13-trixie-slim \
-  --build-arg YIO_fastbpmn_PACKAGE=fastbpmn \
-  --build-arg YIO_fastbpmn_VERSION=$(git describe --tags --always) \
-  -f docker-images/Dockerfile \
-  -t fastbpmn:local \
-  .
+docker buildx bake \
+  -f docker-images/docker-bake.hcl \
+  --var VERSION=$(git describe --tags --always) \
+  default
+```
+
+Build only debian / alpine images (`python3.14`):
+
+```shell
+# debian
+docker buildx bake \
+  -f docker-images/docker-bake.hcl
+  --var VERSION=$(git describe --tags --always) \
+  debian
+
+# alpine
+docker buildx bake \
+  -f docker-images/docker-bake.hcl
+  --var VERSION=$(git describe --tags --always) \
+  alpine
+```
+
+Build a single variant:
+
+```shell
+docker buildx bake \
+  -f docker-images/docker-bake.hcl \
+  --var VERSION=$(git describe --tags --always) \
+  python-3_14-alpine
 ```
