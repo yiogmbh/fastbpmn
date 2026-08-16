@@ -20,7 +20,7 @@ jobs:
     uses: ./.github/workflows/reusable_docker-build.yaml
     with:
       version: "${{ github.ref_name }}"
-      push: "true"
+      push: true
   # publish (to pypi)
   pypi-publish:
     name: Publish Python 🐍 distribution 📦 to PyPI
