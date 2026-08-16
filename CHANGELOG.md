@@ -8,9 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+### 🚀 Features
+
+- *(verify)* Run pytests for python 3.11 to 3.14
+- *(docker)* Add docker bake scaffold
+- *(cicd)* Restructure workflows
+
 ### 🐛 Bug Fixes
 
 - *(docker)* Fix some wrong legacy paths for startup (#22)
+
+### 📚 Documentation
+
+- *(styling)* Add favicons and svg logo
+- *(docker)* Add information about prebuilt docker images
 
 
 ## [0.4.0] - 2026-07-31
