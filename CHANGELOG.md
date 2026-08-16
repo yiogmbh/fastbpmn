@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 - *(docker)* Fix some wrong legacy paths for startup (#22)
+- *(cicd)* Enable push in release
 
 ### 📚 Documentation
 
