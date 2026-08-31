@@ -8,9 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
-### 🐛 Bug Fixes
+### 📚 Documentation
 
-- *(cicd)* Enable push in release
+- Add macros to allow bpmn rendering on docs pages (#24)
 
 
 ## [0.5.0] - 2026-08-16
@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 - *(docker)* Fix some wrong legacy paths for startup (#22)
+- *(cicd)* Enable push in release
 - *(cicd)* Enable push in release
 
 ### 📚 Documentation
