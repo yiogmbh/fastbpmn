@@ -1,0 +1,78 @@
+
+
+.bpmn-viewer {
+  overflow: hidden;
+  height: 250px;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.4rem;
+  background: var(--md-default-bg-color);
+  display: flex;
+  position: relative;
+}
+
+.bpmn-viewer__canvas {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+}
+
+.bpmn-viewer__canvas > .bjs-container {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+}
+
+.bpmn-viewer__canvas .djs-container,
+.bpmn-viewer__canvas svg {
+  width: 100%;
+  height: 100%;
+}
+
+.bpmn-viewer__canvas svg {
+  display: block;
+  max-width: none;
+}
+
+.bpmn-viewer__selection {
+  position: absolute;
+  right: 5rem;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.25rem;
+  background: var(--md-default-bg-color);
+  font-size: 0.75rem;
+}
+
+.bpmn-viewer--error {
+  display: grid;
+  min-height: 8rem;
+  place-items: center;
+  padding: 1rem;
+  color: var(--md-typeset-color);
+  text-align: center;
+}
+
+.bpmn-viewer--snippet-highlight {
+  border-left:  #1976d2 solid 1em;
+  margin-left: -2em;
+  padding-left: 1em;
+}
+
+.djs-element.selected .djs-visual > :first-child {
+  stroke: #1976d2 !important;
+}
+
+.djs-element.selected .djs-visual > :first-child {
+  fill: lightgrey !important;
+  fill-opacity: .33 !important;
+  stroke: #1976d2 !important;
+}
