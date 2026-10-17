@@ -51,7 +51,8 @@ nav = [
     { "Features" = [
         "features/index.md",
         "features/builtins.md",
-        "features/dependencies.md"
+        "features/dependencies.md",
+        "features/observability.md"
     ]},
     { "Process Engines" = [
         "processengines/index.md",
