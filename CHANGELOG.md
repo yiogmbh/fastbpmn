@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+### 🚀 Features
+
+- *(observability)* Otel instrumentation (#25)
+
 ### 📚 Documentation
 
 - Add macros to allow bpmn rendering on docs pages (#24)
