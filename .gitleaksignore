@@ -4,3 +4,5 @@ examples/camunda7/docker-compose.yaml:curl-auth-user:58
 examples/camunda7/docker-compose.yaml:curl-auth-user:45
 examples/operaton/docker-compose.yaml:curl-auth-user:58
 examples/operaton/docker-compose.yaml:curl-auth-user:45
+examples/observability/docker-compose.yaml:curl-auth-user:43
+examples/observability/docker-compose.yaml:curl-auth-user:55
