@@ -108,7 +108,8 @@ The middleware records:
   and returns to `0` after shutdown.
 
 Decorate the application's async-context lifespan with
-`fastbpmn.lifespan.track_lifespan(meter)` to enable these metrics.
+`fastbpmn.middleware.observability.wrap_lifespan(meter)` to enable these
+metrics.
 - Child spans and outcome metrics for signal emission, message correlation,
   and variable fetch operations.
 

@@ -11,7 +11,7 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 
 from fastbpmn.fastbpmn import FastBPMN
 from fastbpmn.middleware import Middleware
-from fastbpmn.middleware.observability import track_lifespan
+from fastbpmn.middleware.observability import wrap_lifespan
 from fastbpmn.middleware.observability import ObservabilityMiddleware
 from fastbpmn.middleware.observability import MetricsMiddleware
 from fastbpmn.middleware.observability import TracingMiddleware
@@ -386,7 +386,7 @@ async def test_telemetry_failure_does_not_fail_application() -> None:
 async def test_minion_lifecycle_records_restarts_and_running_state() -> None:
     _, meter_provider, _, metric_reader = telemetry()
 
-    @track_lifespan(meter_provider.get_meter("lifecycle"))
+    @wrap_lifespan(meter_provider.get_meter("lifecycle"))
     @asynccontextmanager
     async def lifespan(_app):
         yield

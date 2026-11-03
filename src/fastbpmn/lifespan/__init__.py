@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import functools
 import logging
+import warnings
 import types
 from asyncio import Queue
 from typing import Any, Callable, Generator, Sequence, TypeVar
@@ -31,6 +32,23 @@ LifespanSendMessage = (
 )
 
 STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
+
+
+def wrap_lifespan(meter: Any | None = None) -> Any:
+    """Compatibility import for the observability lifespan wrapper."""
+    from fastbpmn.middleware.observability import wrap_lifespan as wrapper
+
+    return wrapper(meter)
+
+
+def track_lifespan(meter: Any | None = None) -> Any:
+    """Deprecated compatibility alias for :func:`wrap_lifespan`."""
+    warnings.warn(
+        "track_lifespan is deprecated; use wrap_lifespan instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return wrap_lifespan(meter)
 
 
 class LifespanOn:
