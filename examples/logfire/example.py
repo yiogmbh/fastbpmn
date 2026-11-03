@@ -17,7 +17,7 @@ from fastbpmn.models import BaseInputModel, BaseOutputModel
 from fastbpmn.middleware.observability import (
     MetricsMiddleware,
     TracingMiddleware,
-    track_lifespan,
+    wrap_lifespan,
 )
 
 logger = structlog.get_logger(__name__)
@@ -27,7 +27,7 @@ logfire.configure(send_to_logfire="if-token-present")
 logfire.instrument_pydantic()
 
 
-@track_lifespan()
+@wrap_lifespan()
 @asynccontextmanager
 async def lifespan(app):
     logger.info("init your resources here")

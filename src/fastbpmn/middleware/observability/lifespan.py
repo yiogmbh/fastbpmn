@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import contextlib
+import warnings
 from collections.abc import Callable
 from typing import Any
 
 from .metrics import LifespanMetrics
 
-__all__ = ("track_lifespan",)
+__all__ = ("track_lifespan", "wrap_lifespan")
 
 
-def track_lifespan(
+def wrap_lifespan(
     meter: Any | None = None,
 ) -> Callable[
     [Callable[[Any], contextlib.AbstractAsyncContextManager[Any]]],
@@ -33,3 +34,13 @@ def track_lifespan(
         return tracked
 
     return decorator
+
+
+def track_lifespan(meter: Any | None = None) -> Any:
+    """Deprecated alias for :func:`wrap_lifespan`."""
+    warnings.warn(
+        "track_lifespan is deprecated; use wrap_lifespan instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return wrap_lifespan(meter)

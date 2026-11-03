@@ -11,6 +11,7 @@ from opentelemetry.trace import Tracer
 from .metrics import LifespanMetrics
 from .metrics import MetricsMiddleware
 from .lifespan import track_lifespan
+from .lifespan import wrap_lifespan
 from .tracing import TracingMiddleware
 
 __all__ = (
@@ -19,6 +20,7 @@ __all__ = (
     "ObservabilityMiddleware",
     "track_lifespan",
     "TracingMiddleware",
+    "wrap_lifespan",
 )
 
 
