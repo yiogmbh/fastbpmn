@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [unreleased]
+
+### 🐛 Bug Fixes
+
+- Add missing with_lifespan method allowing to set lifespan not only with constructor
+- *(observability)* Rename track_lifespan to a more useful name (keep wrap_lifespan for compatibility)
+
+
 ## [0.7.0] - 2026-11-03
 
 ### 🚀 Features
