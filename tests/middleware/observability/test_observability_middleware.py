@@ -434,3 +434,30 @@ async def test_minion_lifecycle_records_restarts_and_running_state() -> None:
     )
     assert restarts.data.data_points[0].value == 2
     assert up.data.data_points[0].value == 0
+
+
+@pytest.mark.asyncio
+async def test_lifespan_can_be_added_after_application_construction() -> None:
+    @asynccontextmanager
+    async def lifespan(_app):
+        yield
+
+    app = FastBPMN()
+    assert app.with_lifespan(lifespan) is app
+
+    events = [{"type": "lifespan.startup"}, {"type": "lifespan.shutdown"}]
+    sent: list[dict[str, str]] = []
+
+    async def send(event: dict[str, str]) -> None:
+        sent.append(event)
+
+    await app(
+        {"type": "lifespan", "app": app},
+        lambda: receive_events(events),
+        send,
+    )
+
+    assert sent == [
+        {"type": "lifespan.startup.complete"},
+        {"type": "lifespan.shutdown.complete"},
+    ]
