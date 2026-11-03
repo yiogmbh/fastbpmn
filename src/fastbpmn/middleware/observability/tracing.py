@@ -1,9 +1,11 @@
 import asyncio
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
 from aetpiref.typing import AETPIApplication
+from aetpiref.typing import ExternalTaskScope
 from opentelemetry import context, trace
 from opentelemetry.trace import Span, Status, StatusCode, Tracer
 
@@ -13,11 +15,12 @@ from ._observability import (
     OPERATION_RESPONSES,
     TERMINAL_EVENTS,
     event_type,
+    trace_attributes,
 )
 
 __all__ = ("TracingMiddleware",)
 
-_INSTRUMENTATION_NAME = "fastbpmn.middleware.tracing"
+_INSTRUMENTATION_NAME = "fastbpmn.middleware.observability.tracing"
 
 
 @dataclass
@@ -45,14 +48,25 @@ class TracingMiddleware(EventLifecycleMiddleware):
         *,
         tracer: Tracer | None = None,
         include_tenant: bool = False,
+        include_business_key: bool = False,
         record_exception_details: bool = True,
+        record_variable_details: bool = False,
     ) -> None:
         super().__init__(app, include_tenant=include_tenant)
         self.tracer = tracer or trace.get_tracer(_INSTRUMENTATION_NAME)
+        self.include_business_key = include_business_key
         self.record_exception_details = record_exception_details
+        self.record_variable_details = record_variable_details
 
     def create_state(self, attributes: dict[str, str]) -> _TracingState:
         return _TracingState(attributes)
+
+    def attributes(self, scope: ExternalTaskScope) -> dict[str, str]:
+        return trace_attributes(
+            scope,
+            self.include_tenant,
+            self.include_business_key,
+        )
 
     def receive_event(self, state: _TracingState, event: Mapping[str, Any]) -> None:
         event_name = event_type(event)
@@ -80,6 +94,7 @@ class TracingMiddleware(EventLifecycleMiddleware):
             self.record_phase_event(state.negotiation_span, event_name)
         elif event_name == "externaltask.execute.start" and not state.execution_active:
             self.start_execution(state)
+            self.record_variable_event(state, event, "input")
 
         response = OPERATION_RESPONSES.get(event_name)
         transaction = event.get("transaction")
@@ -114,6 +129,8 @@ class TracingMiddleware(EventLifecycleMiddleware):
                 "accepted" if event_name.endswith("accept") else "rejected",
                 event_name,
             )
+        elif event_name == "externaltask.execute.extendlock":
+            self.record_phase_event(state.execution_span, event_name)
 
         operation = OPERATION_REQUESTS.get(event_name)
         transaction = event.get("transaction")
@@ -122,6 +139,8 @@ class TracingMiddleware(EventLifecycleMiddleware):
 
         outcome = TERMINAL_EVENTS.get(event_name)
         if outcome is not None and state.execution_active:
+            if event_name == "externaltask.execute.complete":
+                self.record_variable_event(state, event, "output")
             self.finish_execution(state, outcome, event_name=event_name)
 
     def handle_exception(self, state: _TracingState, exc: BaseException) -> None:
@@ -159,7 +178,7 @@ class TracingMiddleware(EventLifecycleMiddleware):
         state.execution_active = True
         state.execution_span = self.start_span(
             "fastbpmn.external_task.execute",
-            {**state.attributes, "aetpi.phase": "execute"},
+            {**state.attributes, "scope.aetpi.phase": "execute"},
         )
         self.record_phase_event(state.execution_span, "externaltask.execute.start")
         if state.execution_span is not None:
@@ -179,7 +198,7 @@ class TracingMiddleware(EventLifecycleMiddleware):
     ) -> Span | None:
         return self.start_span(
             name,
-            {**state.attributes, "aetpi.phase": phase},
+            {**state.attributes, "scope.aetpi.phase": phase},
         )
 
     def start_operation(
@@ -193,17 +212,48 @@ class TracingMiddleware(EventLifecycleMiddleware):
             f"fastbpmn.external_task.{operation}",
             {
                 **state.attributes,
-                "aetpi.phase": operation,
-                "aetpi.request.type": event_name,
+                "scope.aetpi.phase": operation,
+                "scope.aetpi.request.type": event_name,
             },
         )
         if span is not None:
             state.operations[transaction] = (span, operation, event_name)
-            self.record(span.add_event, event_name, {"aetpi.event.type": event_name})
+            self.record(
+                span.add_event, event_name, {"scope.aetpi.event.type": event_name}
+            )
 
     def record_phase_event(self, span: Span | None, event_name: str) -> None:
         if span is not None:
-            self.record(span.add_event, event_name, {"aetpi.event.type": event_name})
+            self.record(
+                span.add_event, event_name, {"scope.aetpi.event.type": event_name}
+            )
+
+    def record_variable_event(
+        self,
+        state: _TracingState,
+        event: Mapping[str, Any],
+        direction: str,
+    ) -> None:
+        if state.execution_span is None:
+            return
+        variables = event.get("variables") or {}
+        if not isinstance(variables, Mapping):
+            return
+        attributes: dict[str, Any] = {
+            "scope.aetpi.variable_count": len(variables),
+            "scope.aetpi.variable_names": ",".join(sorted(map(str, variables))),
+        }
+        if self.record_variable_details:
+            attributes["scope.aetpi.variables"] = json.dumps(
+                variables,
+                default=str,
+                sort_keys=True,
+            )
+        self.record(
+            state.execution_span.add_event,
+            f"externaltask.execute.{direction}",
+            attributes,
+        )
 
     def finish_operation(
         self,
@@ -220,9 +270,9 @@ class TracingMiddleware(EventLifecycleMiddleware):
             self.record(
                 span.add_event,
                 event_name,
-                {"aetpi.event.type": event_name},
+                {"scope.aetpi.event.type": event_name},
             )
-            self.record(span.set_attribute, "aetpi.response.type", event_name)
+            self.record(span.set_attribute, "scope.aetpi.response.type", event_name)
         self.record(
             span.set_attribute, "operation.outcome", "success" if success else "failure"
         )
@@ -280,30 +330,26 @@ class TracingMiddleware(EventLifecycleMiddleware):
         if span is None:
             return
         if event_name is not None:
-            self.record(span.add_event, event_name, {"aetpi.event.type": event_name})
-            self.record(span.set_attribute, "aetpi.response.type", event_name)
-        self.record(span.set_attribute, "aetpi.outcome", outcome)
+            self.record(
+                span.add_event, event_name, {"scope.aetpi.event.type": event_name}
+            )
+            self.record(span.set_attribute, "scope.aetpi.response.type", event_name)
+        self.record(span.set_attribute, "scope.aetpi.outcome", outcome)
         if outcome in {"exception", "failure"}:
             self.record(span.set_status, Status(StatusCode.ERROR))
         self.record(span.end)
         setattr(state, field, None)
 
     def record_protocol_event(self, state: _TracingState, event_name: str) -> None:
-        spans = (
-            state.scope_span,
-            state.lock_span,
-            state.negotiation_span,
-            state.execution_span,
-        )
-        seen: set[int] = set()
-        for span in spans:
-            if span is not None and id(span) not in seen:
-                seen.add(id(span))
-                self.record(
-                    span.add_event,
-                    event_name,
-                    {"aetpi.event.type": event_name},
-                )
+        if state.scope_span is not None and event_name in (
+            "externaltask.start",
+            "externaltask.end",
+        ):
+            self.record(
+                state.scope_span.add_event,
+                event_name,
+                {"scope.aetpi.event.type": event_name},
+            )
 
     def start_span(self, name: str, attributes: dict[str, str]) -> Span | None:
         try:
@@ -322,8 +368,13 @@ class TracingMiddleware(EventLifecycleMiddleware):
         if span is None:
             return
         if event_name is not None:
-            self.record(span.set_attribute, "aetpi.response.type", event_name)
-        self.record(span.set_attribute, "aetpi.outcome", outcome)
+            self.record(
+                span.add_event,
+                event_name,
+                {"scope.aetpi.event.type": event_name},
+            )
+            self.record(span.set_attribute, "scope.aetpi.response.type", event_name)
+        self.record(span.set_attribute, "scope.aetpi.outcome", outcome)
         if outcome in {"failure", "business_error", "exception"}:
             self.record(span.set_status, Status(StatusCode.ERROR))
         elif outcome in {"completed", "accepted"}:
