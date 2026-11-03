@@ -3,7 +3,7 @@ import traceback
 import warnings
 from contextlib import asynccontextmanager
 from itertools import chain
-from typing import Any, Callable, List, Optional, Pattern, Sequence
+from typing import Any, Callable, List, Optional, Pattern, Self, Sequence
 
 import structlog
 from aetpiref.typing import (
@@ -77,6 +77,7 @@ class FastBPMN:
         )
         self.user_middleware = [] if middleware is None else list(middleware)
         self.middleware_stack: AETPIApplication | None = None
+        self._legacy_lifespan = False
 
         if lifespan and (on_startup or on_shutdown):
             raise RuntimeError(
@@ -85,10 +86,25 @@ class FastBPMN:
 
         if lifespan is None and (on_startup or on_shutdown):
             self.lifespan_context = DeprecatedLifespan(self, on_startup, on_shutdown)
+            self._legacy_lifespan = True
         elif lifespan is None:
             self.lifespan_context: Lifespan[Any] = NoopLifespan(self)
 
-        elif inspect.isasyncgenfunction(lifespan):
+        else:
+            self.with_lifespan(lifespan)
+
+    def with_lifespan(self, lifespan: Lifespan[AppType]) -> Self:
+        """Configure or replace the application's async lifespan context."""
+        if self.middleware_stack is not None:
+            raise RuntimeError(
+                "Cannot change lifespan after the application has started"
+            )
+        if self._legacy_lifespan:
+            raise RuntimeError(
+                "Using both lifespan and on_startup / on_shutdown is forbidden"
+            )
+
+        if inspect.isasyncgenfunction(lifespan):
             warnings.warn(
                 "async generator function lifespans are deprecated, "
                 "use an @contextlib.asynccontextmanager function instead",
@@ -103,6 +119,7 @@ class FastBPMN:
             self.lifespan_context = _wrap_gen_lifespan_context(lifespan)
         else:
             self.lifespan_context = lifespan
+        return self
 
     def build_middleware_stack(self) -> AETPIApplication:
         error_handler = None
@@ -130,7 +147,7 @@ class FastBPMN:
             app = cls(app, *args, **kwargs)
         return app
 
-    async def lifespan(
+    async def _lifespan(
         self,
         scope: LifespanScope,
         receive: AETPIReceiveCallable,
@@ -173,7 +190,7 @@ class FastBPMN:
         scope["app"] = self
 
         if scope["type"] == "lifespan":
-            await self.lifespan(scope, receive, send)
+            await self._lifespan(scope, receive, send)
             return
 
         if self.middleware_stack is None:
@@ -189,19 +206,25 @@ class FastBPMN:
 
     def add_event_handler(
         self, event_type: str, func: Callable
-    ) -> None:  # pragma: no cover
+    ) -> Self:  # pragma: no cover
         assert event_type in ("startup", "shutdown")
 
         if event_type == "startup":
             self.on_startup.append(func)
         else:
             self.on_shutdown.append(func)
+        return self
 
-    def include_process(self, process: Process) -> None:
+    def add_process(self, process: Process) -> Self:
         """
         Includes a bunch of external tasks all related to one specific process.
         """
         self.processes.append(process)
+        return self
+
+    def include_process(self, process: Process) -> Self:
+        """Compatibility alias for :meth:`add_process`."""
+        return self.add_process(process)
 
     @property
     def task_props_without_processes(self):
@@ -215,8 +238,9 @@ class FastBPMN:
         self,
         exc_class: type[Exception],
         handler: ExceptionHandler,
-    ) -> None:  # pragma: no cover
+    ) -> Self:  # pragma: no cover
         self.exception_handlers[exc_class] = handler
+        return self
 
     def exception_handler(
         self, exc_class: type[Exception]
@@ -230,10 +254,11 @@ class FastBPMN:
 
     def add_middleware(
         self, middleware_class: _MiddlewareFactory[P], *args: P.args, **kwargs: P.kwargs
-    ) -> None:
+    ) -> Self:
         if self.middleware_stack is not None:  # pragma: no cover
             raise RuntimeError("Cannot add middleware after an application has started")
         self.user_middleware.insert(0, Middleware(middleware_class, *args, **kwargs))
+        return self
 
     def add_task(
         self,
@@ -248,7 +273,7 @@ class FastBPMN:
         output_class: Optional[OutputModel] = None,
         lock_duration: int = 300_000,
         retries: int = 3,
-    ):
+    ) -> Self:
         """
         Adding a task as specified to the minion
         """
@@ -274,6 +299,7 @@ class FastBPMN:
         )
 
         self._task_props.append(props)
+        return self
 
     def external_task(
         self,
