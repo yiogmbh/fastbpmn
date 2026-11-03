@@ -6,3 +6,5 @@ examples/operaton/docker-compose.yaml:curl-auth-user:58
 examples/operaton/docker-compose.yaml:curl-auth-user:45
 examples/observability/docker-compose.yaml:curl-auth-user:43
 examples/observability/docker-compose.yaml:curl-auth-user:55
+examples/logfire/docker-compose.yaml:curl-auth-user:45
+examples/logfire/docker-compose.yaml:curl-auth-user:57
