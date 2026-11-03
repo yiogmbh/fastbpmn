@@ -42,8 +42,8 @@ from opentelemetry.sdk.trace.export import (
 
 from fastbpmn import FastBPMN
 from fastbpmn.middleware import Middleware
-from fastbpmn.middleware.metrics import MetricsMiddleware
-from fastbpmn.middleware.tracing import TracingMiddleware
+from fastbpmn.middleware.observability import MetricsMiddleware
+from fastbpmn.middleware.observability import TracingMiddleware
 
 
 trace_provider = TracerProvider()
@@ -103,18 +103,36 @@ The middleware records:
 - An execution span from `externaltask.execute.start` to a terminal execution
   event.
 - Execution count, duration, active executions, and lock-decision metrics.
+- `fastbpmn.lifespan.starts`, a counter incremented after each successful
+  startup, and `fastbpmn.lifespan.up`, which is `1` while the lifespan is active
+  and returns to `0` after shutdown.
+
+Decorate the application's async-context lifespan with
+`fastbpmn.lifespan.track_lifespan(meter)` to enable these metrics.
 - Child spans and outcome metrics for signal emission, message correlation,
   and variable fetch operations.
 
-Protocol event names are preserved as span events and `aetpi.*` attributes.
+Protocol event names are preserved as span events and `scope.aetpi.*` attributes.
 Lock extensions are recorded as protocol events and do not create short-lived
 spans. Variable fetches are children of the execution span because they occur
 while a task handler is running.
 
-Topic and process-definition key are used as bounded dimensions. Variables,
-business keys, process instance IDs, task IDs, error messages, and other
-payloads are not exported as span attributes or metric dimensions. Exception
-details are the exception to this rule and can be disabled as described above.
+Topic and process-definition key are used as bounded metric dimensions.
+Variables, business keys, process instance IDs, task IDs, error messages, and
+other payloads are not exported as metric dimensions. Exception details are
+the exception to this rule and can be disabled as described above.
+
+Trace spans also include AETPI scope, protocol, and task metadata under
+`scope.*`, including `scope.type`, `scope.protocol`, `scope.aetpi.*`, and
+`scope.task.*` attributes for
+protocol version, topic, process definition, process instance, worker,
+priority, and retries. Tenant IDs can be enabled with
+`include_tenant=True`; business keys require the explicit
+`include_business_key=True` option. These high-cardinality values are kept out
+of metrics. Execution input and output are recorded on the execution span as
+`externaltask.execute.input` and `externaltask.execute.output` events with
+variable names and counts. Serialized variable values require the explicit
+`record_variable_details=True` option.
 
 ## Production Export
 
