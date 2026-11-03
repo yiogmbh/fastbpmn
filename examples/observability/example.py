@@ -23,8 +23,8 @@ from opentelemetry.sdk.trace.export import (
 from fastbpmn import FastBPMN
 from fastbpmn.models import BaseInputModel, BaseOutputModel
 from fastbpmn.middleware import Middleware
-from fastbpmn.middleware.metrics import MetricsMiddleware
-from fastbpmn.middleware.tracing import TracingMiddleware
+from fastbpmn.middleware.observability import MetricsMiddleware
+from fastbpmn.middleware.observability import TracingMiddleware
 
 logger = structlog.get_logger(__name__)
 
