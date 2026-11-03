@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock
 
 import pytest
@@ -8,9 +9,12 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
+from fastbpmn.fastbpmn import FastBPMN
+from fastbpmn.middleware import Middleware
+from fastbpmn.middleware.observability import track_lifespan
 from fastbpmn.middleware.observability import ObservabilityMiddleware
-from fastbpmn.middleware.metrics import MetricsMiddleware
-from fastbpmn.middleware.tracing import TracingMiddleware
+from fastbpmn.middleware.observability import MetricsMiddleware
+from fastbpmn.middleware.observability import TracingMiddleware
 
 
 DEFAULT_SCOPE = {
@@ -94,9 +98,16 @@ async def test_successful_execution_records_span_and_metrics() -> None:
         span for span in spans if span.name == "fastbpmn.external_task.scope"
     )
     assert execution_span.attributes["execution.outcome"] == "completed"
-    assert scope_span.attributes["aetpi.outcome"] == "completed"
-    assert execution_span.attributes["fastbpmn.topic"] == "test-topic"
-    assert "fastbpmn.tenant_id" not in execution_span.attributes
+    assert scope_span.attributes["scope.type"] == "externaltask"
+    assert scope_span.attributes["scope.aetpi.outcome"] == "completed"
+    assert execution_span.attributes["scope.task.topic"] == "test-topic"
+    assert "scope.task.tenant_id" not in execution_span.attributes
+    assert [event.name for event in execution_span.events] == [
+        "externaltask.execute.start",
+        "externaltask.execute.input",
+        "externaltask.execute.output",
+        "externaltask.execute.complete",
+    ]
 
     metrics = metric_reader.get_metrics_data().resource_metrics[0].scope_metrics[0]
     metric_names = {metric.name for metric in metrics.metrics}
@@ -187,10 +198,24 @@ async def test_protocol_phases_are_spans_and_lock_extension_is_an_event() -> Non
     scope_span = next(
         span for span in spans if span.name == "fastbpmn.external_task.scope"
     )
+    lock_span = next(
+        span for span in spans if span.name == "fastbpmn.external_task.lock"
+    )
+    negotiation_span = next(
+        span
+        for span in spans
+        if span.name == "fastbpmn.external_task.execute.negotiation"
+    )
     event_names = {event.name for event in scope_span.events}
-    assert "externaltask.execute.extendlock" in event_names
-    assert "externaltask.lock.request" in event_names
-    assert "externaltask.execute.complete" in event_names
+    assert event_names == {"externaltask.start", "externaltask.end"}
+    assert [event.name for event in lock_span.events] == [
+        "externaltask.lock.request",
+        "externaltask.lock.accept",
+    ]
+    assert [event.name for event in negotiation_span.events] == [
+        "externaltask.execute.request",
+        "externaltask.execute.accept",
+    ]
 
 
 @pytest.mark.asyncio
@@ -355,3 +380,57 @@ async def test_telemetry_failure_does_not_fail_application() -> None:
 
     middleware = ObservabilityMiddleware(app, tracer=BrokenTracer())  # type: ignore[arg-type]
     await middleware(DEFAULT_SCOPE, lambda: receive_events(incoming), AsyncMock())
+
+
+@pytest.mark.asyncio
+async def test_minion_lifecycle_records_restarts_and_running_state() -> None:
+    _, meter_provider, _, metric_reader = telemetry()
+
+    @track_lifespan(meter_provider.get_meter("lifecycle"))
+    @asynccontextmanager
+    async def lifespan(_app):
+        yield
+
+    app = FastBPMN(
+        lifespan=lifespan,
+        middleware=[
+            Middleware(
+                ObservabilityMiddleware,
+            )
+        ],
+    )
+
+    async def run_lifespan() -> None:
+        events = [
+            {"type": "lifespan.startup"},
+            {"type": "lifespan.shutdown"},
+        ]
+        sent: list[dict[str, str]] = []
+
+        async def send(event: dict[str, str]) -> None:
+            sent.append(event)
+
+        await app(
+            {"type": "lifespan", "app": app},
+            lambda: receive_events(events),
+            send,
+        )
+        assert sent == [
+            {"type": "lifespan.startup.complete"},
+            {"type": "lifespan.shutdown.complete"},
+        ]
+
+    await run_lifespan()
+    await run_lifespan()
+
+    metrics = metric_reader.get_metrics_data().resource_metrics[0].scope_metrics[0]
+    restarts = next(
+        metric
+        for metric in metrics.metrics
+        if metric.name == "fastbpmn.lifespan.starts"
+    )
+    up = next(
+        metric for metric in metrics.metrics if metric.name == "fastbpmn.lifespan.up"
+    )
+    assert restarts.data.data_points[0].value == 2
+    assert up.data.data_points[0].value == 0

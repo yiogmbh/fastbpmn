@@ -15,9 +15,9 @@ from ._observability import (
     event_type,
 )
 
-__all__ = ("MetricsMiddleware",)
+__all__ = ("LifespanMetrics", "MetricsMiddleware")
 
-_INSTRUMENTATION_NAME = "fastbpmn.middleware.metrics"
+_INSTRUMENTATION_NAME = "fastbpmn.middleware.observability.metrics"
 
 
 @dataclass
@@ -27,6 +27,44 @@ class _MetricsState:
     active: bool = False
     finished: bool = False
     operations: dict[str, str] = field(default_factory=dict)
+
+
+class LifespanMetrics:
+    """OpenTelemetry metrics for the application lifespan."""
+
+    def __init__(self, meter: Meter | None = None) -> None:
+        meter = meter or metrics.get_meter(_INSTRUMENTATION_NAME)
+        self.starts: Counter = meter.create_counter(
+            "fastbpmn.lifespan.starts",
+            unit="{start}",
+            description="Successful lifespan startup events.",
+        )
+        self.up: UpDownCounter = meter.create_up_down_counter(
+            "fastbpmn.lifespan.up",
+            unit="{lifespan}",
+            description="Lifespans currently running.",
+        )
+        self._running = False
+
+    def startup(self) -> None:
+        if self._running:
+            return
+        self._running = True
+        self._record(self.starts.add, 1)
+        self._record(self.up.add, 1)
+
+    def shutdown(self) -> None:
+        if not self._running:
+            return
+        self._running = False
+        self._record(self.up.add, -1)
+
+    @staticmethod
+    def _record(method: Any, *args: Any) -> None:
+        try:
+            method(*args)
+        except Exception:
+            pass
 
 
 class MetricsMiddleware(EventLifecycleMiddleware):

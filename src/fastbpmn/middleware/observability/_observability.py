@@ -53,6 +53,50 @@ def task_attributes(
     return attributes
 
 
+def trace_attributes(
+    scope: ExternalTaskScope,
+    include_tenant: bool,
+    include_business_key: bool,
+) -> dict[str, str]:
+    """Extract protocol and task metadata for trace span attributes."""
+    attributes: dict[str, str] = {}
+    scope_type = scope.get("type")
+    if scope_type is not None:
+        attributes["scope.type"] = str(scope_type)
+    protocol = scope.get("protocol")
+    if protocol is not None:
+        attributes["scope.protocol"] = str(protocol)
+
+    aetpi = scope.get("aetpi", {})
+    for key in ("spec_version", "version"):
+        value = aetpi.get(key)
+        if value is not None:
+            attributes[f"scope.aetpi.{key}"] = str(value)
+
+    task = scope.get("task", {})
+    for key in (
+        "topic_name",
+        "process_definition_key",
+        "process_instance_id",
+        "worker_id",
+        "priority",
+        "retries",
+    ):
+        value = task.get(key)
+        if value is not None:
+            attribute = {
+                "topic_name": "topic",
+                "process_definition_key": "process_definition_key",
+            }.get(key, key)
+            attributes[f"scope.task.{attribute}"] = str(value)
+
+    if include_tenant and task.get("tenant_id") is not None:
+        attributes["scope.task.tenant_id"] = str(task["tenant_id"])
+    if include_business_key and task.get("business_key") is not None:
+        attributes["scope.task.business_key"] = str(task["business_key"])
+    return attributes
+
+
 class EventLifecycleMiddleware(ABC):
     """Dispatch protocol lifecycle events to a telemetry implementation."""
 
@@ -70,7 +114,7 @@ class EventLifecycleMiddleware(ABC):
             await self.app(scope, receive, send)
             return
 
-        attributes = task_attributes(scope, self.include_tenant)
+        attributes = self.attributes(scope)
         state = self.create_state(attributes)
 
         async def wrapped_receive() -> AETPIReceiveEvent:
@@ -93,6 +137,9 @@ class EventLifecycleMiddleware(ABC):
     @abstractmethod
     def create_state(self, attributes: dict[str, str]) -> Any:
         raise NotImplementedError
+
+    def attributes(self, scope: ExternalTaskScope) -> dict[str, str]:
+        return task_attributes(scope, self.include_tenant)
 
     def receive_event(self, state: Any, event: Mapping[str, Any]) -> None:
         del state, event
